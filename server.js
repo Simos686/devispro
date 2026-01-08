@@ -8,13 +8,13 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Initialisation de Stripe
-const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_4eC39HqLyjWDarjtT1zdp7dc');
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_51S5wIk8W7xqYoZIBtlQnkJcWTAXeqVlDo4s3LWc8OpqLTSEaPu67wuyYC7goZgtRUnFZphaa7IUtHjHScH9eIkC300wh4oeTuQ');
 
 // ====================
 // MIDDLEWARE
 // ====================
 app.use(cors({
-    origin: ['https://votre-app.onrender.com', 'http://localhost:3000'],
+    origin: '*',
     credentials: true
 }));
 app.use(express.json());
@@ -86,35 +86,56 @@ app.post('/api/login', async (req, res) => {
 // 4. GET PRICING INFO
 app.get('/api/pricing', async (req, res) => {
     try {
-        // Prix en mode test Stripe
+        // Prix en mode test Stripe - IMPORTANT: Utilisez vos VRAIS Price IDs
         const pricing = {
-            basic: {
-                name: 'Basique',
-                price: 9.99,
-                priceId: 'price_1PJ1jZKs4lFmh6LgHqDeyp4B', // Remplacez par votre vrai price_id
+            basic_monthly: {
+                name: 'Pro Mensuel',
+                price: 19.99,
+                priceId: 'price_1PqA6i8W7xqYoZIBKlsopkYJ', // ← REMPLACEZ par votre VRAI Price ID
+                credits: 'illimités',
+                features: ['Devis illimités', 'PDF pro', 'Support prioritaire']
+            },
+            basic_yearly: {
+                name: 'Pro Annuel',
+                price: 190.00,
+                priceId: 'price_1PqA7J8W7xqYoZIBkflOPQr', // ← REMPLACEZ par votre VRAI Price ID
+                credits: 'illimités',
+                features: ['2 mois offerts', 'Tout inclus', 'Support 24/7']
+            },
+            credits_10: {
+                name: '10 crédits',
+                price: 15.00,
+                priceId: 'price_1PqA8c8W7xqYoZIBvEfLmNpX', // ← REMPLACEZ par votre VRAI Price ID
                 credits: 10,
-                features: ['10 devis/mois', 'Support email', 'Export PDF']
+                features: ['1,50€ / devis', 'Pas d\'engagement']
             },
-            pro: {
-                name: 'Professionnel',
-                price: 29.99,
-                priceId: 'price_1PJ1k8Ks4lFmh6LgnM4xM8Jd', // Remplacez par votre vrai price_id
+            credits_25: {
+                name: '25 crédits',
+                price: 30.00,
+                priceId: 'price_1PqA9h8W7xqYoZIBzGtKwYlM', // ← REMPLACEZ par votre VRAI Price ID
+                credits: 25,
+                features: ['1,20€ / devis', 'Économique']
+            },
+            credits_50: {
+                name: '50 crédits',
+                price: 50.00,
+                priceId: 'price_1PqAAb8W7xqYoZIBtHjKxZyQ', // ← REMPLACEZ par votre VRAI Price ID
                 credits: 50,
-                features: ['50 devis/mois', 'Support prioritaire', 'Modèles personnalisés']
+                features: ['1,00€ / devis', 'Meilleur rapport']
             },
-            premium: {
-                name: 'Premium',
-                price: 99.99,
-                priceId: 'price_1PJ1kZ4lFmh6LgKs4lFmh6Lg', // Remplacez par votre vrai price_id
-                credits: 'Illimités',
-                features: ['Devis illimités', 'Support 24/7', 'API intégration']
+            credits_100: {
+                name: '100 crédits',
+                price: 80.00,
+                priceId: 'price_1PqABU8W7xqYoZIBcDfLmNpX', // ← REMPLACEZ par votre VRAI Price ID
+                credits: 100,
+                features: ['0,80€ / devis', 'Idéal professionnel']
             }
         };
         
         res.json({
             success: true,
             pricing: pricing,
-            stripePublicKey: process.env.STRIPE_PUBLIC_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx'
+            stripePublicKey: process.env.STRIPE_PUBLIC_KEY || 'pk_test_51S5wIk8W7xqYoZIBtlQnkJcWTAXeqVlDo4s3LWc8OpqLTSEaPu67wuyYC7goZgtRUnFZphaa7IUtHjHScH9eIkC300wh4oeTuQ'
         });
         
     } catch (error) {
@@ -125,12 +146,13 @@ app.get('/api/pricing', async (req, res) => {
     }
 });
 
-// 5. CREATE CHECKOUT SESSION (VRAI STRIPE) ⭐
+// 5. CREATE CHECKOUT SESSION (VRAI STRIPE) ⭐ CORRIGÉ ⭐
 app.post('/api/create-checkout-session', async (req, res) => {
     try {
         console.log('💳 Création de session Stripe');
+        console.log('📦 Body reçu:', req.body);
         
-        const { priceId, plan, customerEmail } = req.body;
+        const { priceId, plan, customerEmail, success_url, cancel_url } = req.body;
         
         if (!priceId) {
             return res.status(400).json({ 
@@ -139,8 +161,17 @@ app.post('/api/create-checkout-session', async (req, res) => {
             });
         }
         
+        // Vérifier que c'est bien un Price ID (commence par price_)
+        if (!priceId.startsWith('price_')) {
+            console.error('❌ Ce n\'est pas un Price ID valide:', priceId);
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Format Price ID invalide. Doit commencer par "price_"' 
+            });
+        }
+        
         // Créer la session Stripe
-        const session = await stripe.checkout.sessions.create({
+        const sessionParams = {
             payment_method_types: ['card'],
             line_items: [
                 {
@@ -148,15 +179,21 @@ app.post('/api/create-checkout-session', async (req, res) => {
                     quantity: 1,
                 },
             ],
-            mode: 'subscription',
-            success_url: `${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}/pricing.html`,
-            customer_email: customerEmail,
+            mode: priceId.includes('monthly') || priceId.includes('yearly') ? 'subscription' : 'payment',
+            success_url: success_url || `${process.env.FRONTEND_URL || 'https://devispro.onrender.com'}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: cancel_url || `${process.env.FRONTEND_URL || 'https://devispro.onrender.com'}/pricing.html`,
             metadata: {
                 plan: plan || 'basic',
-                userId: req.body.userId || 'anonymous'
+                type: priceId.includes('monthly') || priceId.includes('yearly') ? 'subscription' : 'credits'
             }
-        });
+        };
+        
+        // Ajouter l'email client si fourni
+        if (customerEmail) {
+            sessionParams.customer_email = customerEmail;
+        }
+        
+        const session = await stripe.checkout.sessions.create(sessionParams);
         
         console.log('✅ Session Stripe créée:', session.id);
         
@@ -172,7 +209,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
         res.status(500).json({ 
             success: false, 
             error: error.message,
-            code: error.code
+            code: error.code,
+            type: error.type
         });
     }
 });
@@ -201,28 +239,13 @@ app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (
         case 'checkout.session.completed':
             const session = event.data.object;
             console.log('✅ Paiement réussi pour la session:', session.id);
-            console.log('Client email:', session.customer_email);
-            console.log('Plan:', session.metadata.plan);
+            console.log('Métadonnées:', session.metadata);
             
             // ICI: Mettre à jour votre base de données
             // - Activer l'abonnement pour l'utilisateur
             // - Ajouter les crédits
             // - Envoyer un email de confirmation
             
-            break;
-            
-        case 'customer.subscription.created':
-            const subscription = event.data.object;
-            console.log('📅 Nouvel abonnement créé:', subscription.id);
-            break;
-            
-        case 'invoice.payment_succeeded':
-            const invoice = event.data.object;
-            console.log('💰 Facture payée:', invoice.id);
-            break;
-            
-        case 'customer.subscription.deleted':
-            console.log('❌ Abonnement annulé');
             break;
     }
     
@@ -350,6 +373,8 @@ app.listen(PORT, () => {
 🚀 DevisPro avec Stripe démarré sur le port ${PORT}
 🌐 URL: http://localhost:${PORT}
 💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Configuré' : '⚠️ Mode test'}
-🔗 Frontend: ${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}
+🔗 Frontend: ${process.env.FRONTEND_URL || 'https://devispro.onrender.com'}
+📊 Test API: /api/test
+💰 Pricing API: /api/pricing
     `);
 });
