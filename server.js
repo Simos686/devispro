@@ -22,25 +22,47 @@ let db;
 
 async function connectDB() {
     try {
-        db = await mysql.createConnection({
-            host: process.env.DB_HOST,
-            user: process.env.DB_USER,
-            password: process.env.DB_PASSWORD,
-            database: process.env.DB_NAME,
-            port: process.env.DB_PORT || 3306,
-            waitForConnections: true,
-            connectionLimit: 10,
-            queueLimit: 0
-        });
-        console.log('✅ MySQL connecté avec succès');
-        
-        // Créer les tables si elles n'existent pas
-        await createTables();
+        // Sur Render, pas de MySQL, utilisez SQLite
+        if (process.env.NODE_ENV === 'production' || !process.env.DB_HOST) {
+            console.log('🌐 Environnement Render - Utilisation de SQLite');
+            
+            const sqlite3 = require('sqlite3').verbose();
+            const { open } = require('sqlite');
+            const fs = require('fs');
+            
+            // Créer le dossier data
+            if (!fs.existsSync('./data')) {
+                fs.mkdirSync('./data');
+            }
+            
+            // Ouvrir SQLite
+            db = await open({
+                filename: './data/devispro.db',
+                driver: sqlite3.Database
+            });
+            
+            console.log('✅ SQLite connecté');
+            
+            // Créer les tables SQLite
+            await createSQLiteTables();
+            
+        } else {
+            // Mode développement avec MySQL
+            db = await mysql.createConnection({
+                host: process.env.DB_HOST,
+                user: process.env.DB_USER,
+                password: process.env.DB_PASSWORD,
+                database: process.env.DB_NAME,
+                port: process.env.DB_PORT || 3306
+            });
+            console.log('✅ MySQL connecté avec succès');
+            await createTables();
+        }
         
     } catch (error) {
-        console.error('❌ Erreur connexion MySQL:', error.message);
-        // Fallback sur les fichiers JSON en cas d'erreur
-        console.log('🔄 Utilisation du mode fichier (fallback)');
+        console.error('❌ Erreur connexion base de données:', error.message);
+        console.log('🔄 Mode fichiers JSON activé');
+        db = null;
     }
 }
 
@@ -1016,4 +1038,5 @@ async function startServer() {
 
 
 startServer().catch(console.error);
+
 
