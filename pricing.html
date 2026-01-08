@@ -693,25 +693,25 @@
     <!-- JavaScript -->
     <script>
         // ============================================
-        // CONFIGURATION
+        // CONFIGURATION STRIPE RÉELLE
         // ============================================
         
         const API_BASE_URL = window.location.origin; // Utilise le domaine actuel
         
-        // 🎯 IMPORTANT : Remplacer par vos VRAIS IDs Stripe !
+        // 🎯 VOS VRAIS PRICE IDs STRIPE (à obtenir depuis Stripe Dashboard)
         const STRIPE_PRICES = {
-            // Abonnements mensuels
-            'price_pro_monthly': 'price_1SnJVq8W7xqYoZIBuQQySy8P',  // ← À REMPLACER
-            'price_pro_yearly': 'price_1SnJWS8W7xqYoZIBtZE0wYkH',   // ← À REMPLACER
+            // Abonnements (recurring) - doivent être en mode 'subscription'
+            'price_pro_monthly': 'price_1SnJVq8W7xqYoZIBuQQySy8P',  // Pro Mensuel
+            'price_pro_yearly': 'price_1SnJWS8W7xqYoZIBtZE0wYkH',   // Pro Annuel
             
-            // Crédits
-            'price_10_credits': 'price_1PqXYZABCDEfGhIjKlMnOpU',   // ← À REMPLACER
-            'price_25_credits': 'price_1SnJXR8W7xqYoZIBsquJfSoY',   // ← À REMPLACER
-            'price_50_credits': 'price_1PqXYZABCDEfGhIjKlMnOpU',   // ← À REMPLACER
-            'price_100_credits': 'price_1PqXYZABCDEfGhIjKlMnOpV'   // ← À REMPLACER
+            // Crédits (one-time) - doivent être en mode 'payment'
+            'price_10_credits': 'price_1SnJXR8W7xqYoZIBsquJfSoY',   // 10 crédits (25€)
+            'price_25_credits': 'price_1SnJXR8W7xqYoZIBsquJfSoY',   // 25 crédits (même prix pour l'instant)
+            'price_50_credits': 'price_1SnJXR8W7xqYoZIBsquJfSoY',   // 50 crédits (même prix pour l'instant)
+            'price_100_credits': 'price_1SnJXR8W7xqYoZIBsquJfSoY'   // 100 crédits (même prix pour l'instant)
         };
         
-        // 🎯 REMPLACER par votre clé publique Stripe LIVE !
+        // 🎯 VOTRE CLÉ PUBLIQUE STRIPE
         const STRIPE_PUBLIC_KEY = 'pk_test_51S5wIk8W7xqYoZIBtlQnkJcWTAXeqVlDo4s3LWc8OpqLTSEaPu67wuyYC7goZgtRUnFZphaa7IUtHjHScH9eIkC300wh4oeTuQ';
         
         // ============================================
@@ -719,12 +719,25 @@
         // ============================================
         let selectedCreditPack = 50;
         let selectedPriceId = 'price_50_credits';
+        let stripeInstance = null;
         
         // ============================================
         // INITIALISATION
         // ============================================
         document.addEventListener('DOMContentLoaded', function() {
             console.log('💰 Page tarifs initialisée');
+            console.log('🔗 URL:', window.location.href);
+            console.log('🔧 API Base URL:', API_BASE_URL);
+            
+            // Initialiser Stripe.js
+            if (STRIPE_PUBLIC_KEY && !STRIPE_PUBLIC_KEY.includes('XYZ')) {
+                try {
+                    stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
+                    console.log('✅ Stripe.js initialisé');
+                } catch (error) {
+                    console.error('❌ Erreur initialisation Stripe:', error);
+                }
+            }
             
             // Vérifier l'état de l'utilisateur
             checkUserStatus();
@@ -737,11 +750,38 @@
             
             // Tester la connexion API
             testApiConnection();
+            
+            // Charger dynamiquement les prix depuis l'API
+            loadPricingFromAPI();
         });
         
         // ============================================
         // FONCTIONS PRINCIPALES
         // ============================================
+        
+        // Charger les prix depuis l'API
+        async function loadPricingFromAPI() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/pricing`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.pricing) {
+                        console.log('✅ Prix chargés depuis l\'API');
+                        updatePricingDisplay(data.pricing);
+                    }
+                }
+            } catch (error) {
+                console.warn('⚠️ Impossible de charger les prix depuis l\'API:', error.message);
+            }
+        }
+        
+        // Mettre à jour l'affichage des prix
+        function updatePricingDisplay(pricingData) {
+            console.log('📊 Données de prix reçues:', pricingData);
+            
+            // Vous pouvez utiliser ces données pour mettre à jour dynamiquement
+            // les prix affichés si nécessaire
+        }
         
         // Sélectionner un pack de crédits
         function selectCreditPack(credits, priceId) {
@@ -762,7 +802,7 @@
             showNotification(`Pack de ${credits} crédits sélectionné`, 'info');
         }
         
-        // Gérer un abonnement (INTÉGRATION STRIPE RÉELLE)
+        // Gérer un abonnement (INTÉGRATION STRIPE RÉELLE - CORRIGÉ)
         async function handleSubscription(priceIdKey, planName) {
             const token = localStorage.getItem('devispro_token');
             const user = JSON.parse(localStorage.getItem('devispro_user') || '{}');
@@ -789,7 +829,12 @@
             button.disabled = true;
             
             try {
-                console.log('📤 Création session Stripe pour:', { priceId, planName });
+                console.log('📤 Création session Stripe pour:', { 
+                    priceIdKey, 
+                    priceId, 
+                    planName,
+                    apiUrl: `${API_BASE_URL}/api/create-checkout-session`
+                });
                 
                 // Appeler VOTRE API pour créer la session Stripe
                 const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
@@ -817,7 +862,7 @@
                 
                 if (data.success && data.url) {
                     // ⭐ REDIRECTION VERS LA PAGE DE PAIEMENT STRIPE ⭐
-                    console.log('🔗 Redirection vers Stripe:', data.url);
+                    console.log(`🔗 Redirection vers Stripe (mode: ${data.mode || 'subscription'}):`, data.url);
                     window.location.href = data.url;
                 } else {
                     throw new Error(data.error || 'Erreur lors de la création du paiement');
@@ -828,19 +873,10 @@
                 showNotification(`Erreur: ${error.message}`, 'error');
                 button.innerHTML = originalText;
                 button.disabled = false;
-                
-                // Si c'est une erreur d'authentification, rediriger vers login
-                if (error.message.includes('401') || error.message.includes('Non autorisé')) {
-                    localStorage.removeItem('devispro_token');
-                    localStorage.removeItem('devispro_user');
-                    setTimeout(() => {
-                        window.location.href = 'login.html?expired=true';
-                    }, 2000);
-                }
             }
         }
         
-        // Acheter des crédits (INTÉGRATION STRIPE RÉELLE)
+        // Acheter des crédits (INTÉGRATION STRIPE RÉELLE - CORRIGÉ)
         async function handleBuyCredits() {
             const token = localStorage.getItem('devispro_token');
             const user = JSON.parse(localStorage.getItem('devispro_user') || '{}');
@@ -895,7 +931,7 @@
                 
                 if (data.success && data.url) {
                     // ⭐ REDIRECTION VERS LA PAGE DE PAIEMENT STRIPE ⭐
-                    console.log('🔗 Redirection vers Stripe:', data.url);
+                    console.log(`🔗 Redirection vers Stripe (mode: ${data.mode || 'payment'}):`, data.url);
                     window.location.href = data.url;
                 } else {
                     throw new Error(data.error || 'Erreur lors de la création du paiement');
@@ -917,13 +953,17 @@
         async function testApiConnection() {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/test`);
+                const data = await response.json();
                 if (response.ok) {
-                    console.log('✅ Connexion API OK');
+                    console.log('✅ Connexion API OK:', data.message);
+                    return true;
                 } else {
-                    console.warn('⚠️ API non accessible');
+                    console.warn('⚠️ API non accessible:', data.error);
+                    return false;
                 }
             } catch (error) {
                 console.error('❌ Erreur connexion API:', error);
+                return false;
             }
         }
         
@@ -1060,52 +1100,170 @@
         }
         
         // ============================================
-        // FONCTIONS DE DEBUG
+        // FONCTIONS DE DEBUG ET DÉVELOPPEMENT
         // ============================================
         
-        // Debug helper
-        window.debugStripe = function() {
-            console.log('🔍 Debug Stripe:');
-            console.log('- API Base URL:', API_BASE_URL);
-            console.log('- Page URL:', window.location.href);
-            console.log('- Stripe Public Key:', STRIPE_PUBLIC_KEY ? '✅ Définie' : '❌ Manquante');
-            console.log('- Price IDs configurés:', Object.keys(STRIPE_PRICES).length);
-            console.log('- User Token:', localStorage.getItem('devispro_token') ? '✅ Présent' : '❌ Absent');
-            console.log('- User Data:', JSON.parse(localStorage.getItem('devispro_user') || '{}'));
+        // Fonction pour debugger la configuration Stripe
+        window.debugStripeConfig = async function() {
+            console.clear();
+            console.log('🔍 DEBUG CONFIGURATION STRIPE 🔍');
+            console.log('=================================');
             
-            // Tester l'API
-            fetch(`${API_BASE_URL}/api/test`)
-                .then(r => r.json())
-                .then(data => console.log('- API Test:', data))
-                .catch(err => console.log('- API Test: ❌', err.message));
+            console.log('📊 CONFIGURATION DE BASE:');
+            console.log('- URL de la page:', window.location.href);
+            console.log('- API Base URL:', API_BASE_URL);
+            console.log('- Stripe Public Key:', STRIPE_PUBLIC_KEY ? '✅ Définie' : '❌ Manquante');
+            console.log('- Nombre de Price IDs configurés:', Object.keys(STRIPE_PRICES).length);
+            
+            console.log('\n👤 ÉTAT UTILISATEUR:');
+            console.log('- Token présent:', localStorage.getItem('devispro_token') ? '✅ Oui' : '❌ Non');
+            const userData = JSON.parse(localStorage.getItem('devispro_user') || '{}');
+            console.log('- Données utilisateur:', userData);
+            
+            console.log('\n🔧 CONFIGURATION PRICE IDs:');
+            Object.keys(STRIPE_PRICES).forEach(key => {
+                const id = STRIPE_PRICES[key];
+                const isValid = id && id.startsWith('price_') && !id.includes('XYZ');
+                console.log(`- ${key}: ${id} ${isValid ? '✅' : '❌'}`);
+            });
+            
+            console.log('\n🌐 TEST CONNEXION API:');
+            try {
+                const testRes = await fetch(`${API_BASE_URL}/api/test`);
+                const testData = await testRes.json();
+                console.log('- API Test:', testRes.ok ? '✅ OK' : `❌ Erreur ${testRes.status}`);
+                console.log('- Message:', testData.message);
+                
+                // Tester les produits Stripe
+                const productsRes = await fetch(`${API_BASE_URL}/api/stripe-products`);
+                if (productsRes.ok) {
+                    const productsData = await productsRes.json();
+                    console.log('- Produits Stripe:', productsData.products?.length || 0);
+                    console.log('- Prix Stripe:', productsData.prices?.length || 0);
+                }
+            } catch (error) {
+                console.log('- API Test: ❌', error.message);
+            }
+            
+            console.log('\n🎯 RECOMMANDATIONS:');
+            
+            // Vérifier les Price IDs
+            const invalidPrices = Object.keys(STRIPE_PRICES).filter(key => {
+                const id = STRIPE_PRICES[key];
+                return !id || id.includes('XYZ') || !id.startsWith('price_');
+            });
+            
+            if (invalidPrices.length > 0) {
+                console.log('❌ PROBLEMES DÉTECTÉS:');
+                invalidPrices.forEach(key => {
+                    console.log(`  - ${key}: "${STRIPE_PRICES[key]}" n'est pas un Price ID valide`);
+                });
+                console.log('\n✅ SOLUTION:');
+                console.log('  1. Allez sur https://dashboard.stripe.com/products');
+                console.log('  2. Cliquez sur chaque produit → Pricing');
+                console.log('  3. Copiez le "Price ID" (commence par price_)');
+                console.log('  4. Remplacez dans STRIPE_PRICES');
+            } else {
+                console.log('✅ Tous les Price IDs semblent valides');
+            }
         };
         
-        // Pour tester rapidement
-        window.testSubscription = function() {
-            console.log('🧪 Test abonnement...');
-            if (!localStorage.getItem('devispro_token')) {
-                alert('Veuillez vous connecter d\'abord');
+        // Tester une session Stripe (pour développement)
+        window.testStripeSession = async function(type = 'subscription') {
+            console.log('🧪 Test session Stripe:', type);
+            
+            const token = localStorage.getItem('devispro_token');
+            if (!token) {
+                alert('Connectez-vous d\'abord');
                 return;
             }
             
-            // Utiliser un price ID de test Stripe si disponible
-            const testPriceId = 'price_1PqXYZABCDEfGhIjKlMnOpQ'; // Remplacer par un vrai
-            if (!testPriceId.includes('XYZ')) {
-                handleSubscription('price_pro_monthly', 'Test Mensuel');
+            let priceId, plan;
+            
+            if (type === 'subscription') {
+                priceId = STRIPE_PRICES.price_pro_monthly;
+                plan = 'Pro Mensuel';
             } else {
-                alert('⚠️ Configurez d\'abord vos Price IDs Stripe');
+                priceId = STRIPE_PRICES.price_50_credits;
+                plan = '50 crédits';
+            }
+            
+            if (!priceId || priceId.includes('XYZ')) {
+                alert('Configurez d\'abord vos Price IDs Stripe');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        priceId: priceId,
+                        plan: plan,
+                        customerEmail: 'test@test.com'
+                    })
+                });
+                
+                const data = await response.json();
+                console.log('Réponse test:', data);
+                
+                if (data.success && data.url) {
+                    // Ouvrir dans un nouvel onglet pour test
+                    window.open(data.url, '_blank');
+                } else {
+                    alert('Erreur: ' + (data.error || 'Inconnue'));
+                }
+            } catch (error) {
+                console.error('Erreur test:', error);
+                alert('Erreur: ' + error.message);
             }
         };
         
-        // Simuler un paiement réussi (pour tests)
+        // Vérifier les produits Stripe disponibles
+        window.checkStripeProducts = async function() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/stripe-products`);
+                const data = await response.json();
+                
+                if (data.success) {
+                    console.log('🛒 PRODUITS STRIPE DISPONIBLES:');
+                    console.log('==============================');
+                    
+                    console.log('\n📦 PRODUITS:');
+                    data.products.forEach(p => {
+                        console.log(`- ${p.name} (${p.id})`);
+                    });
+                    
+                    console.log('\n💰 PRIX:');
+                    data.prices.forEach(p => {
+                        const type = p.type === 'recurring' ? 'Abonnement' : 'Paiement unique';
+                        const amount = p.unit_amount ? `${p.unit_amount} ${p.currency?.toUpperCase()}` : 'N/A';
+                        console.log(`- ${p.id}: ${amount} (${type})`);
+                        if (p.recurring) {
+                            console.log(`  → Récurrence: ${p.recurring.interval} (${p.recurring.interval_count})`);
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+            }
+        };
+        
+        // Simuler un succès (pour tests)
         window.simulateSuccess = function() {
             showNotification('🎉 Simulation : Paiement réussi !', 'success');
         };
+        
+        // Exécuter le debug au chargement si en mode développement
+        if (window.location.href.includes('localhost') || window.location.href.includes('127.0.0.1')) {
+            setTimeout(() => {
+                console.log('🔧 Mode développement détecté');
+                // debugStripeConfig();
+            }, 1000);
+        }
     </script>
 </body>
 </html>
-
-
-
-
-
