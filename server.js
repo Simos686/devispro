@@ -9,7 +9,10 @@ const PORT = process.env.PORT || 3000;
 // ====================
 // MIDDLEWARE (OBLIGATOIRE dans cet ordre)
 // ====================
-app.use(cors());
+app.use(cors({
+    origin: '*', // Autoriser toutes les origines
+    credentials: true
+}));
 app.use(express.json()); // ⭐ ESSENTIEL pour parser les requêtes POST
 app.use(express.static('.')); // Pour servir les fichiers statiques
 
@@ -266,7 +269,7 @@ app.get('/api/user', async (req, res) => {
     }
 });
 
-// 7. CREATE CHECKOUT SESSION (Stripe)
+// 7. CREATE CHECKOUT SESSION (Stripe) - CORRIGÉ ⭐
 app.post('/api/create-checkout-session', async (req, res) => {
     try {
         console.log('💳 POST /api/create-checkout-session');
@@ -280,8 +283,8 @@ app.post('/api/create-checkout-session', async (req, res) => {
             });
         }
         
-        const { priceId } = req.body;
-        console.log('Price ID reçu:', priceId);
+        const { priceId, plan } = req.body;
+        console.log('Données reçues:', { priceId, plan });
         
         if (!priceId) {
             return res.status(400).json({ 
@@ -290,13 +293,26 @@ app.post('/api/create-checkout-session', async (req, res) => {
             });
         }
         
-        // Simulation de session Stripe
+        // ⭐ CORRECTION : Ne pas rediriger vers Stripe en mode test
+        // Simuler directement l'activation de l'abonnement
+        const planDetails = {
+            'price_1': { name: 'Basique', price: 9.99, credits: 10 },
+            'price_2': { name: 'Pro', price: 29.99, credits: 50 },
+            'price_3': { name: 'Premium', price: 99.99, credits: 'illimités' }
+        };
+        
+        const selectedPlan = planDetails[priceId] || { name: plan || 'Standard', price: 19.99, credits: 25 };
+        
+        // Réponse directe (pas de redirection vers Stripe)
         res.json({
             success: true,
-            url: `https://checkout.stripe.com/test?session=test_${Date.now()}`,
-            sessionId: `test_session_${Date.now()}`,
-            message: 'Mode test - Configurez Stripe pour la production',
-            priceId: priceId
+            sessionId: `local_checkout_${Date.now()}`,
+            message: `Abonnement ${selectedPlan.name} activé avec succès`,
+            plan: selectedPlan.name,
+            activated: true,
+            credits: selectedPlan.credits,
+            price: selectedPlan.price,
+            next_billing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
         });
         
     } catch (error) {
@@ -444,9 +460,9 @@ app.listen(PORT, () => {
 ╠══════════════════════════════════════════════════╣
 ║ 📡 Port: ${PORT}                                      
 ║ 🌐 Environnement: ${process.env.NODE_ENV || 'development'}          
-║ 🔗 URL API: https://votre-app.onrender.com/api/test  
+║ 🔗 URL API: http://localhost:${PORT}/api/test  
 ║ 📊 Routes configurées: 9                          
-║ ⚡ Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '❌'}                
+║ ⚡ Stripe: Mode simulation                        
 ╚══════════════════════════════════════════════════╝
     `);
     
