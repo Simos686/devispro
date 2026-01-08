@@ -2,162 +2,52 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const Stripe = require('stripe');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Initialisation de Stripe
+const stripe = Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_4eC39HqLyjWDarjtT1zdp7dc');
+
 // ====================
-// MIDDLEWARE (OBLIGATOIRE dans cet ordre)
+// MIDDLEWARE
 // ====================
 app.use(cors({
-    origin: '*', // Autoriser toutes les origines
+    origin: ['https://votre-app.onrender.com', 'http://localhost:3000'],
     credentials: true
 }));
-app.use(express.json()); // ⭐ ESSENTIEL pour parser les requêtes POST
-app.use(express.static('.')); // Pour servir les fichiers statiques
-
-// Variables globales (gardées pour compatibilité)
-let db = null;
+app.use(express.json());
+app.use(express.static('.'));
 
 // ====================
 // ROUTES API
 // ====================
 
-// 1. TEST ROUTE (GET)
+// 1. TEST ROUTE
 app.get('/api/test', (req, res) => {
     console.log('✅ GET /api/test');
     res.json({
         success: true,
-        message: '🚀 DevisPro API fonctionnelle sur Render',
-        timestamp: new Date().toISOString(),
-        port: PORT,
-        environment: process.env.NODE_ENV || 'development',
-        routes: [
-            'GET    /api/test',
-            'GET    /api/health',
-            'POST   /api/login',
-            'GET    /api/login (debug)',
-            'POST   /api/register',
-            'GET    /api/user',
-            'POST   /api/create-checkout-session',
-            'POST   /api/quotes',
-            'POST   /api/stripe-webhook'
-        ]
+        message: '🚀 DevisPro API avec Stripe',
+        stripe: process.env.STRIPE_SECRET_KEY ? '✅ Configuré' : '❌ Non configuré'
     });
 });
 
 // 2. HEALTH CHECK
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'healthy',
-        service: 'devispro',
-        uptime: process.uptime(),
-        timestamp: new Date().toISOString()
-    });
+    res.json({ status: 'healthy' });
 });
 
-// 3. LOGIN (POST - version production)
+// 3. LOGIN
 app.post('/api/login', async (req, res) => {
     try {
-        console.log('🔐 POST /api/login');
         const { email, password } = req.body;
         
-        console.log('Données reçues:', { email, password: password ? '***' : 'manquant' });
-        
         if (!email || !password) {
-            console.log('❌ Email ou mot de passe manquant');
             return res.status(400).json({ 
                 success: false, 
                 error: 'Email et mot de passe requis' 
-            });
-        }
-        
-        if (!email.includes('@')) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Format email invalide' 
-            });
-        }
-        
-        // Création du token (simple Base64)
-        const tokenData = {
-            id: Date.now(),
-            email: email,
-            firstName: 'Test',
-            lastName: 'User',
-            exp: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 jours
-        };
-        
-        const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
-        
-        // Réponse réussie
-        res.json({
-            success: true,
-            token: token,
-            user: {
-                id: tokenData.id,
-                email: email,
-                firstName: 'Test',
-                lastName: 'User',
-                credits: 3,
-                subscription: 'free',
-                company_name: '',
-                phone: '',
-                address: '',
-                siret: ''
-            },
-            message: 'Connexion réussie'
-        });
-        
-    } catch (error) {
-        console.error('❌ Erreur login:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Erreur serveur: ' + error.message 
-        });
-    }
-});
-
-// 4. LOGIN (GET - pour debug seulement) - ⭐ AJOUTÉ ⭐
-app.get('/api/login', (req, res) => {
-    console.log('📡 GET /api/login (route de debug)');
-    res.json({
-        success: false,
-        error: 'Cette route nécessite une requête POST',
-        instructions: 'Utilisez POST avec email et password',
-        example: {
-            method: 'POST',
-            url: '/api/login',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: {
-                email: 'test@test.com',
-                password: 'test123'
-            }
-        }
-    });
-});
-
-// 5. REGISTER (POST)
-app.post('/api/register', async (req, res) => {
-    try {
-        console.log('📝 POST /api/register');
-        const { email, password, firstName, lastName } = req.body;
-        
-        console.log('Données inscription:', { email, firstName, lastName });
-        
-        if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Tous les champs sont requis' 
-            });
-        }
-        
-        if (!email.includes('@')) {
-            return res.status(400).json({ 
-                success: false, 
-                error: 'Format email invalide' 
             });
         }
         
@@ -165,8 +55,8 @@ app.post('/api/register', async (req, res) => {
         const tokenData = {
             id: Date.now(),
             email: email,
-            firstName: firstName,
-            lastName: lastName,
+            firstName: 'Test',
+            lastName: 'User',
             exp: Date.now() + 30 * 24 * 60 * 60 * 1000
         };
         
@@ -178,90 +68,14 @@ app.post('/api/register', async (req, res) => {
             user: {
                 id: tokenData.id,
                 email: email,
-                firstName: firstName,
-                lastName: lastName,
+                firstName: 'Test',
+                lastName: 'User',
                 credits: 3,
-                subscription: 'free',
-                company_name: '',
-                phone: '',
-                address: '',
-                siret: ''
-            },
-            message: 'Compte créé avec succès'
-        });
-        
-    } catch (error) {
-        console.error('❌ Erreur register:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: 'Erreur lors de la création du compte' 
-        });
-    }
-});
-
-// 6. GET USER INFO
-app.get('/api/user', async (req, res) => {
-    try {
-        console.log('👤 GET /api/user');
-        
-        // Vérifier le token
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token manquant. Utilisez: Authorization: Bearer <token>' 
-            });
-        }
-        
-        const token = authHeader.split(' ')[1];
-        if (!token) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token mal formaté' 
-            });
-        }
-        
-        // Décoder le token
-        let userData;
-        try {
-            const decoded = Buffer.from(token, 'base64').toString();
-            userData = JSON.parse(decoded);
-            console.log('✅ Token décodé:', userData);
-        } catch (error) {
-            console.error('❌ Erreur décodage token:', error);
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token invalide' 
-            });
-        }
-        
-        // Vérifier expiration
-        if (userData.exp && Date.now() > userData.exp) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Token expiré' 
-            });
-        }
-        
-        // Retourner les infos utilisateur
-        res.json({
-            success: true,
-            user: {
-                id: userData.id,
-                email: userData.email,
-                firstName: userData.firstName || 'Utilisateur',
-                lastName: userData.lastName || 'Test',
-                credits: 3,
-                subscription: 'free',
-                company_name: '',
-                phone: '',
-                address: '',
-                siret: ''
+                subscription: 'free'
             }
         });
         
     } catch (error) {
-        console.error('❌ Erreur user info:', error);
         res.status(500).json({ 
             success: false, 
             error: 'Erreur serveur' 
@@ -269,22 +83,54 @@ app.get('/api/user', async (req, res) => {
     }
 });
 
-// 7. CREATE CHECKOUT SESSION (Stripe) - CORRIGÉ ⭐
+// 4. GET PRICING INFO
+app.get('/api/pricing', async (req, res) => {
+    try {
+        // Prix en mode test Stripe
+        const pricing = {
+            basic: {
+                name: 'Basique',
+                price: 9.99,
+                priceId: 'price_1PJ1jZKs4lFmh6LgHqDeyp4B', // Remplacez par votre vrai price_id
+                credits: 10,
+                features: ['10 devis/mois', 'Support email', 'Export PDF']
+            },
+            pro: {
+                name: 'Professionnel',
+                price: 29.99,
+                priceId: 'price_1PJ1k8Ks4lFmh6LgnM4xM8Jd', // Remplacez par votre vrai price_id
+                credits: 50,
+                features: ['50 devis/mois', 'Support prioritaire', 'Modèles personnalisés']
+            },
+            premium: {
+                name: 'Premium',
+                price: 99.99,
+                priceId: 'price_1PJ1kZ4lFmh6LgKs4lFmh6Lg', // Remplacez par votre vrai price_id
+                credits: 'Illimités',
+                features: ['Devis illimités', 'Support 24/7', 'API intégration']
+            }
+        };
+        
+        res.json({
+            success: true,
+            pricing: pricing,
+            stripePublicKey: process.env.STRIPE_PUBLIC_KEY || 'pk_test_TYooMQauvdEDq54NiTphI7jx'
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// 5. CREATE CHECKOUT SESSION (VRAI STRIPE) ⭐
 app.post('/api/create-checkout-session', async (req, res) => {
     try {
-        console.log('💳 POST /api/create-checkout-session');
+        console.log('💳 Création de session Stripe');
         
-        // Vérifier l'authentification
-        const authHeader = req.headers['authorization'];
-        if (!authHeader) {
-            return res.status(401).json({ 
-                success: false,
-                error: 'Non autorisé' 
-            });
-        }
-        
-        const { priceId, plan } = req.body;
-        console.log('Données reçues:', { priceId, plan });
+        const { priceId, plan, customerEmail } = req.body;
         
         if (!priceId) {
             return res.status(400).json({ 
@@ -293,30 +139,118 @@ app.post('/api/create-checkout-session', async (req, res) => {
             });
         }
         
-        // ⭐ CORRECTION : Ne pas rediriger vers Stripe en mode test
-        // Simuler directement l'activation de l'abonnement
-        const planDetails = {
-            'price_1': { name: 'Basique', price: 9.99, credits: 10 },
-            'price_2': { name: 'Pro', price: 29.99, credits: 50 },
-            'price_3': { name: 'Premium', price: 99.99, credits: 'illimités' }
-        };
+        // Créer la session Stripe
+        const session = await stripe.checkout.sessions.create({
+            payment_method_types: ['card'],
+            line_items: [
+                {
+                    price: priceId,
+                    quantity: 1,
+                },
+            ],
+            mode: 'subscription',
+            success_url: `${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}/success.html?session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}/pricing.html`,
+            customer_email: customerEmail,
+            metadata: {
+                plan: plan || 'basic',
+                userId: req.body.userId || 'anonymous'
+            }
+        });
         
-        const selectedPlan = planDetails[priceId] || { name: plan || 'Standard', price: 19.99, credits: 25 };
+        console.log('✅ Session Stripe créée:', session.id);
         
-        // Réponse directe (pas de redirection vers Stripe)
         res.json({
             success: true,
-            sessionId: `local_checkout_${Date.now()}`,
-            message: `Abonnement ${selectedPlan.name} activé avec succès`,
-            plan: selectedPlan.name,
-            activated: true,
-            credits: selectedPlan.credits,
-            price: selectedPlan.price,
-            next_billing: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+            sessionId: session.id,
+            url: session.url, // URL de redirection vers Stripe
+            publicKey: process.env.STRIPE_PUBLIC_KEY
         });
         
     } catch (error) {
-        console.error('❌ Erreur checkout:', error);
+        console.error('❌ Erreur Stripe:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message,
+            code: error.code
+        });
+    }
+});
+
+// 6. STRIPE WEBHOOK (pour les événements)
+app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+    
+    try {
+        // Vérifier la signature du webhook
+        event = stripe.webhooks.constructEvent(
+            req.body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET || 'whsec_test'
+        );
+    } catch (err) {
+        console.error('❌ Signature webhook invalide:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+    
+    console.log('📨 Événement Stripe reçu:', event.type);
+    
+    // Gérer différents types d'événements
+    switch (event.type) {
+        case 'checkout.session.completed':
+            const session = event.data.object;
+            console.log('✅ Paiement réussi pour la session:', session.id);
+            console.log('Client email:', session.customer_email);
+            console.log('Plan:', session.metadata.plan);
+            
+            // ICI: Mettre à jour votre base de données
+            // - Activer l'abonnement pour l'utilisateur
+            // - Ajouter les crédits
+            // - Envoyer un email de confirmation
+            
+            break;
+            
+        case 'customer.subscription.created':
+            const subscription = event.data.object;
+            console.log('📅 Nouvel abonnement créé:', subscription.id);
+            break;
+            
+        case 'invoice.payment_succeeded':
+            const invoice = event.data.object;
+            console.log('💰 Facture payée:', invoice.id);
+            break;
+            
+        case 'customer.subscription.deleted':
+            console.log('❌ Abonnement annulé');
+            break;
+    }
+    
+    res.json({ received: true });
+});
+
+// 7. CHECK SESSION STATUS
+app.get('/api/check-session/:sessionId', async (req, res) => {
+    try {
+        const { sessionId } = req.params;
+        
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+        
+        res.json({
+            success: true,
+            session: {
+                id: session.id,
+                status: session.status,
+                payment_status: session.payment_status,
+                customer_email: session.customer_email,
+                amount_total: session.amount_total ? session.amount_total / 100 : 0,
+                currency: session.currency,
+                metadata: session.metadata
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur vérification session:', error);
         res.status(500).json({ 
             success: false, 
             error: error.message 
@@ -324,12 +258,40 @@ app.post('/api/create-checkout-session', async (req, res) => {
     }
 });
 
-// 8. SAVE QUOTE
+// 8. GET USER INFO
+app.get('/api/user', async (req, res) => {
+    try {
+        const authHeader = req.headers['authorization'];
+        if (!authHeader) {
+            return res.status(401).json({ 
+                success: false,
+                error: 'Token manquant' 
+            });
+        }
+        
+        res.json({
+            success: true,
+            user: {
+                id: 1,
+                email: 'test@test.com',
+                firstName: 'Test',
+                lastName: 'User',
+                credits: 3,
+                subscription: 'free'
+            }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur' 
+        });
+    }
+});
+
+// 9. SAVE QUOTE
 app.post('/api/quotes', async (req, res) => {
     try {
-        console.log('📄 POST /api/quotes');
-        
-        // Vérifier l'authentification
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
             return res.status(401).json({ 
@@ -339,7 +301,6 @@ app.post('/api/quotes', async (req, res) => {
         }
         
         const { client_name, total_ttc } = req.body;
-        console.log('Devis à sauvegarder:', { client_name, total_ttc });
         
         if (!client_name) {
             return res.status(400).json({ 
@@ -348,8 +309,7 @@ app.post('/api/quotes', async (req, res) => {
             });
         }
         
-        // Simulation de sauvegarde
-        const quoteNumber = `DEV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        const quoteNumber = `DEV-${Date.now()}`;
         
         res.json({
             success: true,
@@ -359,123 +319,37 @@ app.post('/api/quotes', async (req, res) => {
                 client_name: client_name,
                 total_ttc: total_ttc || 0,
                 created_at: new Date().toISOString()
-            },
-            credits_remaining: 2,
-            message: 'Devis sauvegardé avec succès (mode test)'
+            }
         });
         
     } catch (error) {
-        console.error('❌ Erreur sauvegarde devis:', error);
         res.status(500).json({ 
             success: false, 
-            error: 'Erreur lors de la sauvegarde' 
+            error: 'Erreur sauvegarde' 
         });
     }
 });
 
-// 9. STRIPE WEBHOOK
-app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
-    console.log('📨 POST /api/stripe-webhook');
-    res.json({ 
-        received: true,
-        message: 'Webhook traité en mode test',
-        timestamp: new Date().toISOString()
-    });
-});
+// Routes fichiers HTML
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/login.html', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/register.html', (req, res) => res.sendFile(path.join(__dirname, 'register.html')));
+app.get('/create.html', (req, res) => res.sendFile(path.join(__dirname, 'create.html')));
+app.get('/pricing.html', (req, res) => res.sendFile(path.join(__dirname, 'pricing.html')));
+app.get('/dashboard.html', (req, res) => res.sendFile(path.join(__dirname, 'dashboard.html')));
+app.get('/success.html', (req, res) => res.sendFile(path.join(__dirname, 'success.html')));
 
-// ====================
-// ROUTES FICHIERS HTML
-// ====================
-
-app.get('/', (req, res) => {
-    console.log('📄 GET / (index.html)');
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-app.get('/login.html', (req, res) => {
-    console.log('📄 GET /login.html');
-    res.sendFile(path.join(__dirname, 'login.html'));
-});
-
-app.get('/register.html', (req, res) => {
-    console.log('📄 GET /register.html');
-    res.sendFile(path.join(__dirname, 'register.html'));
-});
-
-app.get('/create.html', (req, res) => {
-    console.log('📄 GET /create.html');
-    res.sendFile(path.join(__dirname, 'create.html'));
-});
-
-app.get('/pricing.html', (req, res) => {
-    console.log('📄 GET /pricing.html');
-    res.sendFile(path.join(__dirname, 'pricing.html'));
-});
-
-app.get('/dashboard.html', (req, res) => {
-    console.log('📄 GET /dashboard.html');
-    res.sendFile(path.join(__dirname, 'dashboard.html'));
-});
-
-// ====================
-// ROUTE 404 POUR API (AMÉLIORÉE)
-// ====================
-
+// Route 404
 app.use('/api/*', (req, res) => {
-    console.log(`❌ Route API non trouvée: ${req.method} ${req.originalUrl}`);
-    res.status(404).json({
-        success: false,
-        error: `Route ${req.method} ${req.originalUrl} non trouvée`,
-        availableRoutes: [
-            'GET    /api/test',
-            'GET    /api/health',
-            'POST   /api/login',
-            'GET    /api/login (debug)',
-            'POST   /api/register',
-            'GET    /api/user',
-            'POST   /api/create-checkout-session',
-            'POST   /api/quotes',
-            'POST   /api/stripe-webhook'
-        ]
-    });
+    res.status(404).json({ success: false, error: 'Route non trouvée' });
 });
 
-// ====================
-// ROUTE CATCH-ALL POUR SPA
-// ====================
-
-app.get('*', (req, res) => {
-    console.log(`🌐 Route catch-all: ${req.url}`);
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// ====================
-// DÉMARRAGE SERVEUR
-// ====================
-
+// Démarrage serveur
 app.listen(PORT, () => {
     console.log(`
-╔══════════════════════════════════════════════════╗
-║               🚀 DEVISPRO - RENDER               ║
-╠══════════════════════════════════════════════════╣
-║ 📡 Port: ${PORT}                                      
-║ 🌐 Environnement: ${process.env.NODE_ENV || 'development'}          
-║ 🔗 URL API: http://localhost:${PORT}/api/test  
-║ 📊 Routes configurées: 9                          
-║ ⚡ Stripe: Mode simulation                        
-╚══════════════════════════════════════════════════╝
+🚀 DevisPro avec Stripe démarré sur le port ${PORT}
+🌐 URL: http://localhost:${PORT}
+💳 Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅ Configuré' : '⚠️ Mode test'}
+🔗 Frontend: ${process.env.FRONTEND_URL || 'https://votre-app.onrender.com'}
     `);
-    
-    console.log('\n📋 Routes disponibles:');
-    console.log('  GET    /api/test');
-    console.log('  GET    /api/health');
-    console.log('  POST   /api/login');
-    console.log('  GET    /api/login (debug)');
-    console.log('  POST   /api/register');
-    console.log('  GET    /api/user');
-    console.log('  POST   /api/create-checkout-session');
-    console.log('  POST   /api/quotes');
-    console.log('  POST   /api/stripe-webhook');
-    console.log('\n📄 Pages HTML:');
-    console.log('  /, /login.html, /register.html, /create.html, /pricing.html, /dashboard.html');
 });
