@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - DevisPro</title>
+    <style>
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 3rem;
+            --font-primary: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-sm);
+        }
+
+        .register-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .register-card {
+            background: var(--primary-light);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-200);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            text-align: center;
+            margin-bottom: var(--spacing-sm);
+            letter-spacing: -0.02em;
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            text-align: center;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-md);
+            text-align: center;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-sm);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        @media (min-width: 640px) {
+            .form-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--gray-800);
+        }
+
+        label.required::after {
+            content: " *";
+            color: var(--danger);
+        }
+
+        input, select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 5px;
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .password-strength {
+            height: 4px;
+            background: var(--gray-200);
+            border-radius: 2px;
+            margin-top: var(--spacing-xs);
+            overflow: hidden;
+        }
+
+        .strength-meter {
+            height: 100%;
+            width: 0%;
+            transition: all 0.3s;
+            background: var(--danger);
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: var(--spacing-sm);
+        }
+
+        .auth-button:hover {
+            background: var(--accent);
+        }
+
+        .message {
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: var(--spacing-sm);
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .error-message {
+            background: var(--danger);
+            color: white;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: white;
+        }
+
+        .warning-message {
+            background: var(--warning);
+            color: white;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: var(--spacing-md);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+        }
+
+        .links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .benefits {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 5px;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-md);
+        }
+
+        .benefits h3 {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            color: #0369a1;
+        }
+
+        .benefits ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .benefits li {
+            padding: 0.25rem 0;
+            font-size: 0.875rem;
+            color: #0369a1;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .benefits li::before {
+            content: "✓";
+            font-family: var(--font-mono);
+            font-weight: bold;
+        }
+
+        .terms {
+            font-size: 0.75rem;
+            color: var(--gray-800);
+            text-align: center;
+            margin-top: var(--spacing-sm);
+        }
+
+        .terms a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="register-container">
+        <div class="register-card">
+            <div class="logo">DEVISPRO</div>
+            <div class="eyebrow">3 devis gratuits</div>
+            <h1>Créer votre compte</h1>
+            
+            <div id="errorMessage" class="message error-message"></div>
+            <div id="successMessage" class="message success-message"></div>
+            <div id="warningMessage" class="message warning-message"></div>
+            
+            <div class="benefits">
+                <h3>🎁 Inscrivez-vous gratuitement et obtenez :</h3>
+                <ul>
+                    <li>3 devis complets offerts</li>
+                    <li>Export PDF professionnel</li>
+                    <li>Calcul automatique TVA</li>
+                    <li>Sauvegarde de vos devis</li>
+                    <li>Aucune carte bancaire requise</li>
+                </ul>
+            </div>
+            
+            <form id="registerForm">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="firstName" class="required">Prénom</label>
+                        <input type="text" id="firstName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="lastName" class="required">Nom</label>
+                        <input type="text" id="lastName" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="companyName">Nom de l'entreprise (optionnel)</label>
+                    <input type="text" id="companyName" placeholder="Ex: SARL Dupont Plomberie">
+                </div>
+                
+                <div class="form-group">
+                    <label for="activityType" class="required">Type d'activité</label>
+                    <select id="activityType" required>
+                        <option value="">Sélectionnez...</option>
+                        <option value="plomberie">Plomberie</option>
+                        <option value="electricite">Électricité</option>
+                        <option value="maçonnerie">Maçonnerie</option>
+                        <option value="menuiserie">Menuiserie</option>
+                        <option value="peinture">Peinture</option>
+                        <option value="chauffage">Chauffage</option>
+                        <option value="autre">Autre artisan</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="email" class="required">Email professionnel</label>
+                    <input type="email" id="email" required placeholder="votre@email.com">
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="phone" class="required">Téléphone</label>
+                        <input type="tel" id="phone" required placeholder="01 23 45 67 89">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="siret">SIRET (optionnel)</label>
+                        <input type="text" id="siret" placeholder="123 456 789 00012">
+                    </div>
+                </div>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="password" class="required">Mot de passe</label>
+                        <input type="password" id="password" required minlength="6" 
+                               oninput="checkPasswordStrength()">
+                        <div class="password-strength">
+                            <div class="strength-meter" id="strengthMeter"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="confirmPassword" class="required">Confirmer</label>
+                        <input type="password" id="confirmPassword" required 
+                               oninput="checkPasswordMatch()">
+                    </div>
+                </div>
+                
+                <div id="passwordMatchMessage" style="font-size: 0.875rem; margin-bottom: var(--spacing-sm);"></div>
+                
+                <button type="submit" class="auth-button">
+                    Créer mon compte gratuitement →
+                </button>
+            </form>
+            
+            <div class="terms">
+                En vous inscrivant, vous acceptez nos 
+                <a href="#" target="_blank">Conditions d'utilisation</a> et notre 
+                <a href="#" target="_blank">Politique de confidentialité</a>.
+            </div>
+            
+            <div class="links">
+                <p>Déjà un compte ? <a href="login.html">Se connecter</a></p>
+                <p><a href="index.html">← Retour à l'accueil</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let passwordStrength = 0;
+        
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            // Réinitialiser les messages
+            hideAllMessages();
+            
+            // Récupérer les valeurs
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const companyName = document.getElementById('companyName').value;
+            const activityType = document.getElementById('activityType').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const siret = document.getElementById('siret').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            // Validation
+            if (!firstName || !lastName || !activityType || !email || !phone || !password || !confirmPassword) {
+                showError('Veuillez remplir tous les champs obligatoires (*)');
+                return;
+            }
+            
+            if (password !== confirmPassword) {
+                showError('Les mots de passe ne correspondent pas');
+                return;
+            }
+            
+            if (password.length < 6) {
+                showError('Le mot de passe doit contenir au moins 6 caractères');
+                return;
+            }
+            
+            if (passwordStrength < 2) {
+                showWarning('Votre mot de passe est faible. Utilisez des lettres, chiffres et caractères spéciaux.');
+                return;
+            }
+            
+            // Désactiver le bouton
+            const submitBtn = document.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Création du compte...';
+            submitBtn.disabled = true;
+            
+            try {
+                // Dans un environnement réel, vous feriez une requête vers votre API
+                // Exemple :
+                // const response = await fetch('/api/auth/register', {
+                //     method: 'POST',
+                //     headers: { 'Content-Type': 'application/json' },
+                //     body: JSON.stringify({ 
+                //         firstName, lastName, companyName, activityType, 
+                //         email, phone, siret, password 
+                //     })
+                // });
+                
+                // Simuler un délai réseau
+                await new Promise(resolve => setTimeout(resolve, 1500));
+                
+                // Générer un token de simulation
+                const mockToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwiZW1haWwiOiJhcnRpc2FuQHRlc3QuY29tIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c';
+                
+                // Créer l'objet utilisateur
+                const user = {
+                    id: Date.now(),
+                    firstName,
+                    lastName,
+                    companyName,
+                    activityType,
+                    email,
+                    phone,
+                    siret,
+                    credits: 3, // 3 devis gratuits
+                    subscription: 'free',
+                    createdAt: new Date().toISOString()
+                };
+                
+                // Sauvegarder dans localStorage
+                localStorage.setItem('devispro_token', mockToken);
+                localStorage.setItem('devispro_user', JSON.stringify(user));
+                
+                // Sauvegarder aussi dans la liste des utilisateurs (pour la démo)
+                const users = JSON.parse(localStorage.getItem('devispro_users') || '[]');
+                users.push({
+                    ...user,
+                    password: password // Attention: en production, ne JAMAIS stocker le mot de passe en clair
+                });
+                localStorage.setItem('devispro_users', JSON.stringify(users));
+                
+                showSuccess('Compte créé avec succès ! 🎉 Redirection...');
+                
+                // Redirection vers le dashboard après 2 secondes
+                setTimeout(() => {
+                    window.location.href = 'dashboard.html';
+                }, 2000);
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                showError('Erreur lors de la création du compte. Veuillez réessayer.');
+            } finally {
+                // Réactiver le bouton
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const meter = document.getElementById('strengthMeter');
+            
+            // Calcul de la force (simplifié)
+            let strength = 0;
+            
+            if (password.length >= 8) strength++;
+            if (/[A-Z]/.test(password)) strength++;
+            if (/[0-9]/.test(password)) strength++;
+            if (/[^A-Za-z0-9]/.test(password)) strength++;
+            
+            passwordStrength = strength;
+            
+            // Mettre à jour la barre
+            const width = strength * 25;
+            meter.style.width = width + '%';
+            
+            // Couleurs
+            if (strength === 0) {
+                meter.style.backgroundColor = '#ef4444'; // rouge
+            } else if (strength <= 2) {
+                meter.style.backgroundColor = '#f59e0b'; // orange
+            } else {
+                meter.style.backgroundColor = '#10b981'; // vert
+            }
+        }
+        
+        function checkPasswordMatch() {
+            const password = document.getElementById('password').value;
+            const confirm = document.getElementById('confirmPassword').value;
+            const message = document.getElementById('passwordMatchMessage');
+            
+            if (!confirm) {
+                message.textContent = '';
+                return;
+            }
+            
+            if (password === confirm) {
+                message.textContent = '✓ Les mots de passe correspondent';
+                message.style.color = '#10b981';
+            } else {
+                message.textContent = '✗ Les mots de passe ne correspondent pas';
+                message.style.color = '#ef4444';
+            }
+        }
+        
+        function showError(message) {
+            const div = document.getElementById('errorMessage');
+            div.textContent = message;
+            div.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const div = document.getElementById('successMessage');
+            div.textContent = message;
+            div.style.display = 'block';
+        }
+        
+        function showWarning(message) {
+            const div = document.getElementById('warningMessage');
+            div.textContent = message;
+            div.style.display = 'block';
+        }
+        
+        function hideAllMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+            document.getElementById('warningMessage').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

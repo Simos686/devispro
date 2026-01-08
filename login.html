@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - DevisPro</title>
+    <style>
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --font-primary: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--gray-50);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 400px;
+            padding: var(--spacing-md);
+        }
+
+        .auth-card {
+            background: var(--primary-light);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            border: 1px solid var(--gray-200);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary-dark);
+            text-align: center;
+            margin-bottom: var(--spacing-md);
+            letter-spacing: -0.02em;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--gray-800);
+        }
+
+        input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 5px;
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 0.75rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: var(--spacing-sm);
+        }
+
+        .auth-button:hover {
+            background: var(--accent);
+        }
+
+        .auth-button:disabled {
+            background: var(--gray-200);
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: var(--danger);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: var(--spacing-sm);
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .success-message {
+            background: var(--success);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: var(--spacing-sm);
+            font-size: 0.875rem;
+            display: none;
+        }
+
+        .links {
+            text-align: center;
+            margin-top: var(--spacing-md);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+        }
+
+        .links a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .demo-banner {
+            background: #f0f9ff;
+            border: 1px solid #bae6fd;
+            color: #0369a1;
+            padding: 0.75rem;
+            border-radius: 5px;
+            margin-bottom: var(--spacing-sm);
+            font-size: 0.875rem;
+        }
+
+        .demo-banner strong {
+            font-family: var(--font-mono);
+        }
+
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-card">
+            <div class="logo">DEVISPRO</div>
+            
+            <div class="demo-banner">
+                <strong>Comptes de démo :</strong><br>
+                👤 artisan@test.com / MotDePasse123<br>
+                👤 test@devispro.fr / Password123!
+            </div>
+            
+            <h1>Connexion</h1>
+            
+            <div id="errorMessage" class="error-message"></div>
+            <div id="successMessage" class="success-message"></div>
+            
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" required placeholder="votre@email.com" value="artisan@test.com">
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <input type="password" id="password" required placeholder="Votre mot de passe" value="MotDePasse123">
+                </div>
+                
+                <button type="submit" class="auth-button" id="submitBtn">
+                    Se connecter →
+                </button>
+            </form>
+            
+            <div class="links">
+                <p>Pas encore de compte ? <a href="register.html">S'inscrire gratuitement</a></p>
+                <p><a href="index.html">← Retour à l'accueil</a></p>
+                <p><a href="#" onclick="resetPassword()">Mot de passe oublié ?</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            // Réinitialiser les messages
+            hideMessages();
+            
+            // Validation
+            if (!email || !password) {
+                showError('Veuillez remplir tous les champs');
+                return;
+            }
+            
+            // Désactiver le bouton
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="loader"></span> Connexion...';
+            submitBtn.disabled = true;
+            
+            try {
+                // REQUÊTE VERS NOTRE VRAIE API
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Sauvegarder le token et les infos utilisateur
+                    localStorage.setItem('devispro_token', data.token);
+                    localStorage.setItem('devispro_user', JSON.stringify(data.user));
+                    
+                    showSuccess('Connexion réussie ! Redirection...');
+                    
+                    // Redirection vers le dashboard après 1.5 secondes
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                    
+                } else {
+                    showError(data.error || 'Email ou mot de passe incorrect');
+                }
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                showError('Erreur de connexion. Vérifiez votre connexion internet.');
+            } finally {
+                // Réactiver le bouton
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('successMessage');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+        
+        function hideMessages() {
+            document.getElementById('errorMessage').style.display = 'none';
+            document.getElementById('successMessage').style.display = 'none';
+        }
+        
+        function resetPassword() {
+            const email = document.getElementById('email').value;
+            
+            if (!email) {
+                showError('Veuillez entrer votre email pour réinitialiser le mot de passe');
+                return;
+            }
+            
+            // Dans un environnement réel, vous feriez une requête vers votre API
+            showSuccess(`Un lien de réinitialisation a été envoyé à ${email} (simulation)`);
+        }
+
+        // Vérifier si déjà connecté
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = localStorage.getItem('devispro_token');
+            if (token) {
+                // Rediriger directement vers le dashboard si déjà connecté
+                window.location.href = 'dashboard.html';
+            }
+        });
+    </script>
+</body>
+</html>

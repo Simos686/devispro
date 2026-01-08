@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test API DevisPro</title>
+</head>
+<body>
+    <h1>Test de l'API DevisPro</h1>
+    <button onclick="testAll()">Lancer tous les tests</button>
+    <div id="results"></div>
+    
+    <script>
+        const API_URL = 'http://localhost:3000';
+        
+        async function testAll() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<h2>Résultats des tests :</h2>';
+            
+            // Test 1: Connexion API
+            await test('Test API', `${API_URL}/api/test`);
+            
+            // Test 2: Inscription
+            await test('Inscription', `${API_URL}/api/register`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: 'test@api.com',
+                    password: 'password123',
+                    name: 'Test API'
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            
+            // Test 3: Connexion
+            await test('Connexion', `${API_URL}/api/login`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: 'artisan@test.com',
+                    password: 'MotDePasse123'
+                }),
+                headers: { 'Content-Type': 'application/json' }
+            });
+        }
+        
+        async function test(name, url, options = {}) {
+            const results = document.getElementById('results');
+            
+            try {
+                const response = await fetch(url, options);
+                const data = await response.json();
+                
+                const div = document.createElement('div');
+                div.style.padding = '10px';
+                div.style.margin = '5px';
+                div.style.border = '1px solid #ccc';
+                div.style.borderRadius = '5px';
+                
+                if (response.ok) {
+                    div.style.background = '#d1fae5';
+                    div.innerHTML = `<strong>✅ ${name}: SUCCÈS</strong><br>${JSON.stringify(data, null, 2)}`;
+                } else {
+                    div.style.background = '#fee2e2';
+                    div.innerHTML = `<strong>❌ ${name}: ÉCHEC</strong><br>${JSON.stringify(data, null, 2)}`;
+                }
+                
+                results.appendChild(div);
+                
+            } catch (error) {
+                const div = document.createElement('div');
+                div.style.background = '#fee2e2';
+                div.style.padding = '10px';
+                div.style.margin = '5px';
+                div.innerHTML = `<strong>❌ ${name}: ERREUR</strong><br>${error.message}`;
+                results.appendChild(div);
+            }
+        }
+    </script>
+</body>
+</html>

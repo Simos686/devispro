@@ -1,0 +1,1965 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Créer un devis - DevisPro</title>
+    <!-- jsPDF pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Configuration API -->
+    <script>
+        // Configuration API pour correspondre à votre serveur
+        const API_CONFIG = {
+            BASE_URL: 'http://localhost:3000',
+            ENDPOINTS: {
+                LOGIN: '/api/login',
+                REGISTER: '/api/register',
+                USER: '/api/user',  // CHANGÉ: /api/user au lieu de /api/me
+                QUOTES: '/api/quotes',
+                DASHBOARD_STATS: '/api/dashboard/stats'
+            }
+        };
+    </script>
+    <style>
+        /* Variables de design épuré */
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --spacing-xl: 8rem;
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Typographie */
+        h1, h2, h3 {
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .nav-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        .credits-badge {
+            background: var(--accent);
+            color: white;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+
+        .pdf-button {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            text-decoration: none;
+            border: none;
+            border-radius: 0;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .pdf-button:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .creator {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        /* Container Grid */
+        .container-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: var(--spacing-md);
+        }
+
+        /* Section Cards */
+        .section-card {
+            background: var(--primary-light);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s;
+        }
+
+        .section-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: var(--spacing-md);
+        }
+
+        .form-label {
+            display: block;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--gray-800);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--gray-200);
+            border-radius: 5px;
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        /* Services Section */
+        .services-header {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm);
+            background: var(--gray-50);
+            border-radius: 5px;
+            margin-bottom: var(--spacing-xs);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        .services-header span {
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        #services-container {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .service-item-details {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr 1fr auto;
+            gap: var(--spacing-sm);
+            align-items: start;
+            padding: var(--spacing-sm);
+            margin-bottom: var(--spacing-xs);
+            background: var(--gray-50);
+            border-radius: 8px;
+            border: 1px solid var(--gray-200);
+        }
+
+        .service-item-details:hover {
+            border-color: var(--accent);
+            background: var(--gray-100);
+        }
+
+        .service-desc {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .service-quantity, .service-price, .service-tva {
+            width: 100%;
+            min-width: 0;
+        }
+
+        .service-total {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--accent);
+            text-align: right;
+            padding-right: 0.5rem;
+        }
+
+        .remove-service {
+            background: var(--danger);
+            color: white;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            font-size: 1.2rem;
+        }
+
+        .remove-service:hover {
+            background: #dc2626;
+            transform: scale(1.1);
+        }
+
+        .add-button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s;
+            margin-top: var(--spacing-sm);
+        }
+
+        .add-button:hover {
+            background: var(--accent-light);
+            transform: translateY(-2px);
+        }
+
+        /* Champs améliorés */
+        .form-input-small {
+            padding: 0.5rem;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+
+        /* Badges de statut */
+        .status-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .status-draft {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-sent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-paid {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        /* Section conditions générales */
+        .conditions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-md);
+        }
+
+        .condition-item {
+            background: var(--gray-50);
+            padding: var(--spacing-sm);
+            border-radius: 5px;
+            border-left: 3px solid var(--accent);
+        }
+
+        /* Signature */
+        .signature-section {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: var(--gray-50);
+            border-radius: 10px;
+            border: 1px dashed var(--gray-300);
+        }
+
+        .signature-line {
+            width: 200px;
+            height: 1px;
+            background: var(--gray-800);
+            margin: 2rem auto;
+        }
+
+        /* Watermark optionnel */
+        .watermark {
+            position: absolute;
+            opacity: 0.05;
+            font-size: 120px;
+            transform: rotate(-45deg);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        /* Totaux Section */
+        .totals-section {
+            background: var(--gray-50);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            margin-top: var(--spacing-md);
+        }
+
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .total-line:last-child {
+            border-bottom: none;
+        }
+
+        .total-ttc {
+            background: var(--accent);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: 5px;
+            margin-top: var(--spacing-sm);
+            font-weight: bold;
+            font-size: 1.25rem;
+        }
+
+        /* Actions Section */
+        .actions-section {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md);
+            background: var(--gray-50);
+            border-radius: 10px;
+        }
+
+        .actions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-sm);
+        }
+
+        .action-button {
+            padding: 1rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .save-btn {
+            background: var(--success);
+            color: white;
+        }
+
+        .save-btn:hover {
+            background: #0da271;
+        }
+
+        .export-btn {
+            background: var(--accent);
+            color: white;
+        }
+
+        .export-btn:hover {
+            background: var(--accent-light);
+        }
+
+        .reset-btn {
+            background: var(--gray-800);
+            color: white;
+        }
+
+        .reset-btn:hover {
+            background: #4b5563;
+        }
+
+        /* Template buttons */
+        .template-buttons {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            margin-top: var(--spacing-sm);
+        }
+
+        .template-btn {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md) 0;
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .footer-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+        }
+
+        .copyright {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--gray-800);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Loader */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .service-item-details,
+            .services-header {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-xs);
+            }
+            
+            .service-item-details {
+                padding: var(--spacing-md);
+            }
+            
+            .services-header {
+                display: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-actions {
+                display: none;
+            }
+            
+            .actions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .creator {
+                padding: var(--spacing-md);
+            }
+            
+            .conditions-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .template-buttons {
+                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .section-card {
+                padding: var(--spacing-sm);
+            }
+            
+            .signature-line {
+                width: 150px;
+            }
+        }
+
+        /* Animation */
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <a href="index.html" class="logo">DEVISPRO</a>
+            <div class="nav-actions">
+                <a href="dashboard.html" class="nav-link">Dashboard</a>
+                <a href="create.html" class="nav-link">Nouveau devis</a>
+                <a href="quotes.html" class="nav-link">Mes devis</a>
+                <div class="user-info">
+                    <span id="userName">Utilisateur</span>
+                    <span class="credits-badge" id="creditsCount">3</span>
+                </div>
+                <button onclick="logout()" class="nav-link" style="background: none; border: none; cursor: pointer;">
+                    Déconnexion
+                </button>
+                <button onclick="exportPDF()" class="pdf-button">
+                    <span>📄</span>
+                    Exporter PDF
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="creator">
+        <div class="container-grid">
+            <!-- Hero Title -->
+            <div class="section-card animate-in">
+                <div class="eyebrow">Créateur de devis</div>
+                <h1 style="font-size: 2rem; margin-bottom: var(--spacing-xs);">Nouveau devis professionnel</h1>
+                <p style="color: var(--gray-800);">Remplissez les informations ci-dessous pour générer votre devis en 2 minutes</p>
+            </div>
+
+            <!-- Informations Entreprise -->
+            <div class="section-card animate-in">
+                <h2>👤 Votre entreprise</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="companyName" class="form-label">Nom de l'entreprise</label>
+                        <input type="text" id="companyName" class="form-input" placeholder="SARL Dupont Plomberie">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyAddress" class="form-label">Adresse</label>
+                        <input type="text" id="companyAddress" class="form-input" placeholder="123 Rue de l'Artisanat">
+                    </div>
+                    <div class="form-group">
+                        <label for="companySIRET" class="form-label">SIRET</label>
+                        <input type="text" id="companySIRET" class="form-input" placeholder="123 456 789 00012">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyEmail" class="form-label">Email</label>
+                        <input type="email" id="companyEmail" class="form-input" placeholder="contact@entreprise.fr">
+                    </div>
+                    <div class="form-group">
+                        <label for="companyPhone" class="form-label">Téléphone</label>
+                        <input type="tel" id="companyPhone" class="form-input" placeholder="01 23 45 67 89">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Informations Client -->
+            <div class="section-card animate-in">
+                <h2>👥 Client</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="clientName" class="form-label">Nom du client</label>
+                        <input type="text" id="clientName" class="form-input" placeholder="M. Martin" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="clientAddress" class="form-label">Adresse</label>
+                        <input type="text" id="clientAddress" class="form-input" placeholder="456 Avenue des Clients">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientEmail" class="form-label">Email</label>
+                        <input type="email" id="clientEmail" class="form-input" placeholder="client@email.fr">
+                    </div>
+                    <div class="form-group">
+                        <label for="clientPhone" class="form-label">Téléphone</label>
+                        <input type="tel" id="clientPhone" class="form-input" placeholder="06 12 34 56 78">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Détails du devis -->
+            <div class="section-card animate-in">
+                <h2>📝 Détails du devis</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="quoteNumber" class="form-label">Numéro de devis</label>
+                        <input type="text" id="quoteNumber" class="form-input" placeholder="DEV-2024-001" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="quoteDate" class="form-label">Date du devis</label>
+                        <input type="date" id="quoteDate" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="validUntil" class="form-label">Validité</label>
+                        <select id="validUntil" class="form-select">
+                            <option value="30">30 jours</option>
+                            <option value="60">60 jours</option>
+                            <option value="90">90 jours</option>
+                            <option value="custom">Personnalisé</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lignes de prestations -->
+            <div class="section-card animate-in">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-sm);">
+                    <h2>🔧 Prestations</h2>
+                    <button type="button" onclick="addService()" class="add-button">
+                        <span>+</span>
+                        Ajouter une prestation
+                    </button>
+                </div>
+                
+                <div class="services-header">
+                    <span>Description</span>
+                    <span>Qté</span>
+                    <span>Prix unitaire</span>
+                    <span>TVA</span>
+                    <span>Total</span>
+                    <span></span>
+                </div>
+                
+                <div id="services-container">
+                    <div class="service-item-details" id="service-1">
+                        <input type="text" class="service-desc form-input" placeholder="Ex: Intervention plomberie" 
+                               value="Prestation principale" oninput="updateService(1)">
+                        <input type="number" class="service-quantity form-input-small form-input" value="1" min="1" 
+                               oninput="updateService(1)">
+                        <input type="number" class="service-price form-input-small form-input" value="150" min="0" step="0.01" 
+                               oninput="updateService(1)">
+                        <select class="service-tva form-select" onchange="updateService(1)">
+                            <option value="20">20%</option>
+                            <option value="10">10%</option>
+                            <option value="5.5">5.5%</option>
+                            <option value="0">0%</option>
+                        </select>
+                        <span class="service-total">180.00 €</span>
+                        <button type="button" class="remove-service" onclick="removeService(1)">×</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Totaux -->
+            <div class="totals-section animate-in">
+                <h2>💰 Totaux</h2>
+                <div class="total-line">
+                    <span>Total HT:</span>
+                    <span id="totalHT">150.00 €</span>
+                </div>
+                <div class="total-line">
+                    <span>TVA:</span>
+                    <span id="totalTVA">30.00 €</span>
+                </div>
+                <div class="total-line total-ttc">
+                    <span><strong>TOTAL TTC:</strong></span>
+                    <span id="totalTTC"><strong>180.00 €</strong></span>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="section-card animate-in">
+                <h2>📝 Notes & Conditions</h2>
+                <div class="form-group">
+                    <label for="notes" class="form-label">Informations complémentaires</label>
+                    <textarea id="notes" class="form-textarea" rows="4" placeholder="Conditions de paiement, garantie, délais...">Paiement à 50% à la commande, solde à la fin des travaux. Garantie 2 ans main d'œuvre.</textarea>
+                </div>
+            </div>
+
+            <!-- Conditions générales professionnelles -->
+            <div class="section-card animate-in">
+                <h2>⚖️ Conditions générales</h2>
+                <div class="conditions-grid">
+                    <div class="condition-item">
+                        <label class="form-label">Délai de paiement</label>
+                        <select id="paymentTerms" class="form-select">
+                            <option value="30">30 jours</option>
+                            <option value="15">15 jours</option>
+                            <option value="7">7 jours</option>
+                            <option value="0">Comptant</option>
+                        </select>
+                    </div>
+                    
+                    <div class="condition-item">
+                        <label class="form-label">Mode de règlement</label>
+                        <select id="paymentMethod" class="form-select">
+                            <option value="bank">Virement bancaire</option>
+                            <option value="check">Chèque</option>
+                            <option value="cash">Espèces</option>
+                            <option value="card">Carte bancaire</option>
+                        </select>
+                    </div>
+                    
+                    <div class="condition-item">
+                        <label class="form-label">Pénalités de retard</label>
+                        <select id="lateFees" class="form-select">
+                            <option value="0">Aucune</option>
+                            <option value="10">10% après 30 jours</option>
+                            <option value="legal">Taux légal</option>
+                        </select>
+                    </div>
+                    
+                    <div class="condition-item">
+                        <label class="form-label">Garantie</label>
+                        <select id="warranty" class="form-select">
+                            <option value="12">12 mois</option>
+                            <option value="24">24 mois</option>
+                            <option value="36">36 mois</option>
+                            <option value="none">Sans garantie</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section signature -->
+            <div class="section-card animate-in">
+                <h2>✍️ Signature & Validation</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="signatureDate" class="form-label">Date de signature</label>
+                        <input type="date" id="signatureDate" class="form-input">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="validUntilDays" class="form-label">Validité du devis (jours)</label>
+                        <input type="number" id="validUntilDays" class="form-input" value="30" min="1">
+                    </div>
+                </div>
+                
+                <div class="signature-section">
+                    <div style="text-align: center; margin-bottom: var(--spacing-md);">
+                        <p style="color: var(--gray-800); margin-bottom: var(--spacing-sm);">
+                            <strong>Pour acceptation du devis</strong>
+                        </p>
+                        <p style="font-size: 0.9rem; color: var(--gray-800);">
+                            Bon pour accord, le devis est accepté dans les conditions ci-dessus
+                        </p>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: var(--spacing-lg);">
+                        <div style="text-align: center;">
+                            <div class="signature-line"></div>
+                            <p style="margin-top: var(--spacing-xs); font-size: 0.9rem;">
+                                <strong>Le client</strong><br>
+                                Nom, prénom et signature
+                            </p>
+                        </div>
+                        
+                        <div style="text-align: center;">
+                            <div class="signature-line"></div>
+                            <p style="margin-top: var(--spacing-xs); font-size: 0.9rem;">
+                                <strong>L'artisan</strong><br>
+                                Cachet et signature
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Template prédéfinis -->
+            <div class="section-card animate-in">
+                <h2>📋 Templates rapides</h2>
+                <div class="template-buttons">
+                    <button type="button" onclick="loadTemplate('plomberie')" class="template-btn" style="background: #3b82f6; color: white;">
+                        🚿 Plomberie
+                    </button>
+                    <button type="button" onclick="loadTemplate('electricite')" class="template-btn" style="background: #f59e0b; color: white;">
+                        ⚡ Électricité
+                    </button>
+                    <button type="button" onclick="loadTemplate('maçonnerie')" class="template-btn" style="background: #10b981; color: white;">
+                        🧱 Maçonnerie
+                    </button>
+                    <button type="button" onclick="loadTemplate('peinture')" class="template-btn" style="background: #8b5cf6; color: white;">
+                        🎨 Peinture
+                    </button>
+                    <button type="button" onclick="loadTemplate('menuiserie')" class="template-btn" style="background: #f97316; color: white;">
+                        🪑 Menuiserie
+                    </button>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="actions-section animate-in">
+                <div class="actions-grid">
+                    <button type="button" onclick="saveQuoteToAPI()" class="action-button save-btn">
+                        <span>💾</span>
+                        Sauvegarder sur le serveur
+                    </button>
+                    <button type="button" onclick="exportPDF()" class="action-button export-btn">
+                        <span>📄</span>
+                        Exporter PDF
+                    </button>
+                    <button type="button" onclick="resetQuote()" class="action-button reset-btn">
+                        <span>🔄</span>
+                        Nouveau devis
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html" class="footer-link">Accueil</a>
+                <a href="mailto:contact@devispro.fr" class="footer-link">Contact</a>
+                <a href="#" class="footer-link">Mentions légales</a>
+                <a href="pricing.html" class="footer-link">Tarifs</a>
+            </div>
+            <div class="copyright">© 2024 DevisPro • Générateur de devis pour artisans</div>
+        </div>
+    </footer>
+
+    <script>
+        // jsPDF global
+        const { jsPDF } = window.jspdf;
+        
+        // Variables globales
+        let serviceCounter = 1;
+        let currentServices = [
+            { id: 1, description: "Prestation principale", quantity: 1, price: 150, tva: 20, total: 180 }
+        ];
+        let currentQuote = {
+            id: '',
+            date: '',
+            company: {},
+            client: {},
+            details: {},
+            totals: { ht: 150, tva: 30, ttc: 180 }
+        };
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', function() {
+            // Vérifier l'authentification
+            checkAuth();
+            
+            // Initialiser le créateur de devis
+            initQuoteCreator();
+            setupEventListeners();
+            calculateTotal();
+            
+            // Charger les infos utilisateur
+            loadUserInfo();
+            
+            // Charger les données de l'entreprise depuis le profil
+            loadCompanyInfo();
+        });
+
+        // Vérifier l'authentification
+        function checkAuth() {
+            const token = localStorage.getItem('devispro_token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
+        // Charger les infos utilisateur - CORRIGÉ : utilise /api/user
+        async function loadUserInfo() {
+            try {
+                const token = localStorage.getItem('devispro_token');
+                if (!token) {
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.USER}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.user) {
+                        // Afficher le nom complet
+                        const fullName = `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim() || data.user.email;
+                        document.getElementById('userName').textContent = fullName;
+                        document.getElementById('creditsCount').textContent = data.user.credits || 0;
+                        
+                        // Sauvegarder les données utilisateur
+                        localStorage.setItem('devispro_user', JSON.stringify(data.user));
+                        
+                        return data.user;
+                    }
+                } else if (response.status === 401) {
+                    // Token invalide, déconnexion
+                    localStorage.removeItem('devispro_token');
+                    localStorage.removeItem('devispro_user');
+                    window.location.href = 'login.html';
+                }
+            } catch (error) {
+                console.error('Erreur chargement utilisateur:', error);
+                // En cas d'erreur, afficher un message d'avertissement
+                showNotification('Impossible de charger les informations utilisateur', 'warning');
+            }
+            return null;
+        }
+
+        // Charger les infos de l'entreprise depuis le profil
+        function loadCompanyInfo() {
+            try {
+                const userData = localStorage.getItem('devispro_user');
+                if (userData) {
+                    const user = JSON.parse(userData);
+                    
+                    // Pré-remplir avec les données de l'utilisateur si disponibles
+                    if (user.company_name) {
+                        document.getElementById('companyName').value = user.company_name;
+                    }
+                    if (user.email) {
+                        document.getElementById('companyEmail').value = user.email;
+                    }
+                    if (user.phone) {
+                        document.getElementById('companyPhone').value = user.phone;
+                    }
+                    if (user.address) {
+                        document.getElementById('companyAddress').value = user.address;
+                    }
+                    if (user.siret) {
+                        document.getElementById('companySIRET').value = user.siret;
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur chargement entreprise:', error);
+            }
+        }
+
+        function initQuoteCreator() {
+            // Générer un numéro de devis unique
+            const today = new Date();
+            const quoteNumber = 'DEV-' + today.getFullYear() + '-' + 
+                String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+            
+            // Définir les dates
+            const todayStr = today.toISOString().split('T')[0];
+            
+            // Remplir les champs
+            document.getElementById('quoteNumber').value = quoteNumber;
+            document.getElementById('quoteDate').value = todayStr;
+            document.getElementById('signatureDate').value = todayStr;
+            document.getElementById('validUntilDays').value = '30';
+            
+            currentQuote.id = quoteNumber;
+            currentQuote.date = todayStr;
+        }
+
+        function setupEventListeners() {
+            // Mettre à jour currentQuote quand les champs changent
+            const fields = [
+                'companyName', 'companyAddress', 'companySIRET', 'companyEmail', 'companyPhone',
+                'clientName', 'clientAddress', 'clientEmail', 'clientPhone',
+                'quoteNumber', 'quoteDate', 'signatureDate', 'notes',
+                'paymentTerms', 'paymentMethod', 'lateFees', 'warranty', 'validUntilDays'
+            ];
+            
+            fields.forEach(field => {
+                const element = document.getElementById(field);
+                if (element) {
+                    element.addEventListener('change', updateCurrentQuote);
+                    element.addEventListener('input', updateCurrentQuote);
+                }
+            });
+        }
+
+        function updateCurrentQuote() {
+            currentQuote.company = {
+                name: document.getElementById('companyName').value || '',
+                address: document.getElementById('companyAddress').value || '',
+                siret: document.getElementById('companySIRET').value || '',
+                email: document.getElementById('companyEmail').value || '',
+                phone: document.getElementById('companyPhone').value || ''
+            };
+            
+            currentQuote.client = {
+                name: document.getElementById('clientName').value || '',
+                address: document.getElementById('clientAddress').value || '',
+                email: document.getElementById('clientEmail').value || '',
+                phone: document.getElementById('clientPhone').value || ''
+            };
+            
+            currentQuote.details = {
+                number: document.getElementById('quoteNumber').value || currentQuote.id,
+                date: document.getElementById('quoteDate').value || '',
+                signatureDate: document.getElementById('signatureDate').value || '',
+                notes: document.getElementById('notes').value || '',
+                paymentTerms: document.getElementById('paymentTerms').value || '30',
+                paymentMethod: document.getElementById('paymentMethod').value || 'bank',
+                lateFees: document.getElementById('lateFees').value || '0',
+                warranty: document.getElementById('warranty').value || '12',
+                validUntil: document.getElementById('validUntilDays').value || '30'
+            };
+        }
+
+        // Gestion des prestations
+        function addService() {
+            serviceCounter++;
+            const container = document.getElementById('services-container');
+            
+            const serviceDiv = document.createElement('div');
+            serviceDiv.className = 'service-item-details';
+            serviceDiv.id = `service-${serviceCounter}`;
+            
+            serviceDiv.innerHTML = `
+                <input type="text" class="service-desc form-input" placeholder="Description de la prestation" oninput="updateService(${serviceCounter})">
+                <input type="number" class="service-quantity form-input-small form-input" value="1" min="1" oninput="updateService(${serviceCounter})">
+                <input type="number" class="service-price form-input-small form-input" value="0" min="0" step="0.01" oninput="updateService(${serviceCounter})">
+                <select class="service-tva form-select" onchange="updateService(${serviceCounter})">
+                    <option value="20">20%</option>
+                    <option value="10">10%</option>
+                    <option value="5.5">5.5%</option>
+                    <option value="0">0%</option>
+                </select>
+                <span class="service-total">0.00 €</span>
+                <button type="button" class="remove-service" onclick="removeService(${serviceCounter})">×</button>
+            `;
+            
+            container.appendChild(serviceDiv);
+            
+            // Ajouter au tableau des services
+            currentServices.push({ 
+                id: serviceCounter, 
+                description: "", 
+                quantity: 1, 
+                price: 0, 
+                tva: 20,
+                total: 0
+            });
+            
+            showNotification('Prestation ajoutée', 'success');
+        }
+
+        function updateService(id) {
+            const serviceDiv = document.getElementById(`service-${id}`);
+            if (!serviceDiv) return;
+            
+            const description = serviceDiv.querySelector('.service-desc').value;
+            const quantity = parseFloat(serviceDiv.querySelector('.service-quantity').value) || 0;
+            const price = parseFloat(serviceDiv.querySelector('.service-price').value) || 0;
+            const tva = parseFloat(serviceDiv.querySelector('.service-tva').value) || 20;
+            
+            const ht = quantity * price;
+            const tvaAmount = ht * (tva / 100);
+            const total = ht + tvaAmount;
+            
+            serviceDiv.querySelector('.service-total').textContent = total.toFixed(2) + ' €';
+            
+            // Mettre à jour dans le tableau
+            const index = currentServices.findIndex(s => s.id === id);
+            if (index !== -1) {
+                currentServices[index] = { 
+                    id, 
+                    description, 
+                    quantity, 
+                    price, 
+                    tva, 
+                    ht, 
+                    total 
+                };
+            }
+            
+            calculateTotal();
+        }
+
+        function removeService(id) {
+            if (currentServices.length <= 1) {
+                showNotification('Impossible de supprimer la dernière prestation', 'error');
+                return;
+            }
+            
+            const serviceDiv = document.getElementById(`service-${id}`);
+            if (serviceDiv) {
+                serviceDiv.remove();
+                currentServices = currentServices.filter(s => s.id !== id);
+                calculateTotal();
+                showNotification('Prestation supprimée', 'success');
+            }
+        }
+
+        // Calcul des totaux
+        function calculateTotal() {
+            let totalHT = 0;
+            let totalTVA = 0;
+            
+            currentServices.forEach(service => {
+                const ht = (service.quantity || 0) * (service.price || 0);
+                const tva = ht * ((service.tva || 20) / 100);
+                
+                totalHT += ht;
+                totalTVA += tva;
+            });
+            
+            const totalTTC = totalHT + totalTVA;
+            
+            // Mettre à jour l'affichage
+            document.getElementById('totalHT').textContent = totalHT.toFixed(2) + ' €';
+            document.getElementById('totalTVA').textContent = totalTVA.toFixed(2) + ' €';
+            document.getElementById('totalTTC').textContent = totalTTC.toFixed(2) + ' €';
+            
+            // Mettre à jour currentQuote
+            currentQuote.totals = {
+                ht: totalHT,
+                tva: totalTVA,
+                ttc: totalTTC
+            };
+        }
+
+        // Sauvegarder le devis sur l'API - CORRIGÉ pour correspondre à votre serveur
+        async function saveQuoteToAPI() {
+            // Mettre à jour les données actuelles
+            updateCurrentQuote();
+            
+            // Validation
+            if (!document.getElementById('clientName').value) {
+                showNotification('Veuillez saisir le nom du client', 'error');
+                return { success: false, error: 'Nom du client requis' };
+            }
+            
+            if (currentServices.length === 0) {
+                showNotification('Ajoutez au moins une prestation', 'error');
+                return { success: false, error: 'Aucune prestation' };
+            }
+            
+            const token = localStorage.getItem('devispro_token');
+            if (!token) {
+                showNotification('Veuillez vous reconnecter', 'error');
+                window.location.href = 'login.html';
+                return { success: false, error: 'Non authentifié' };
+            }
+            
+            // Calculer les totaux
+            let totalHT = 0;
+            let totalTVA = 0;
+            
+            currentServices.forEach(service => {
+                const ht = (service.quantity || 0) * (service.price || 0);
+                const tva = ht * ((service.tva || 20) / 100);
+                totalHT += ht;
+                totalTVA += tva;
+            });
+            
+            const totalTTC = totalHT + totalTVA;
+            
+            // Préparer les données dans le format attendu par votre serveur
+            const quoteData = {
+                quote_number: currentQuote.details.number || `DEV-${Date.now()}`,
+                client_name: currentQuote.client.name,
+                client_email: currentQuote.client.email,
+                client_address: currentQuote.client.address,
+                client_phone: currentQuote.client.phone,
+                company_info: {
+                    name: currentQuote.company.name,
+                    address: currentQuote.company.address,
+                    siret: currentQuote.company.siret,
+                    email: currentQuote.company.email,
+                    phone: currentQuote.company.phone
+                },
+                services: currentServices.map(service => ({
+                    description: service.description,
+                    quantity: service.quantity,
+                    price: service.price,
+                    tva: service.tva,
+                    total: service.total
+                })),
+                total_ht: totalHT,
+                total_tva: totalTVA,
+                total_ttc: totalTTC,
+                notes: currentQuote.details.notes,
+                payment_terms: currentQuote.details.paymentTerms,
+                payment_method: currentQuote.details.paymentMethod,
+                warranty: currentQuote.details.warranty,
+                signature_date: currentQuote.details.signatureDate,
+                valid_until: currentQuote.details.validUntil
+            };
+            
+            const saveBtn = document.querySelector('.save-btn');
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<span class="loader"></span> Sauvegarde...';
+            saveBtn.disabled = true;
+            
+            try {
+                const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.QUOTES}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(quoteData)
+                });
+                
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        localStorage.removeItem('devispro_token');
+                        localStorage.removeItem('devispro_user');
+                        window.location.href = 'login.html';
+                        return { success: false, error: 'Session expirée' };
+                    }
+                    
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.error || `Erreur ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification(`Devis sauvegardé ! (${data.credits_remaining || 0} crédits restants)`, 'success');
+                    
+                    // Mettre à jour le compteur de crédits
+                    const creditsElement = document.getElementById('creditsCount');
+                    const userData = JSON.parse(localStorage.getItem('devispro_user') || '{}');
+                    
+                    if (data.credits_remaining !== undefined) {
+                        creditsElement.textContent = data.credits_remaining;
+                        userData.credits = data.credits_remaining;
+                        localStorage.setItem('devispro_user', JSON.stringify(userData));
+                    }
+                    
+                    // Sauvegarder localement
+                    saveLocalQuote(data.quote);
+                    
+                    return {
+                        success: true,
+                        quote: data.quote,
+                        credits_remaining: data.credits_remaining
+                    };
+                    
+                } else {
+                    if (data.error && data.error.includes('Crédits insuffisants')) {
+                        showNotification('Crédits épuisés. Passez à un abonnement.', 'error');
+                        setTimeout(() => {
+                            window.location.href = 'pricing.html';
+                        }, 2000);
+                    } else {
+                        showNotification('Erreur: ' + (data.error || 'Inconnue'), 'error');
+                    }
+                    return { success: false, error: data.error };
+                }
+                
+            } catch (error) {
+                console.error('Erreur sauvegarde:', error);
+                
+                if (error.message.includes('Failed to fetch')) {
+                    showNotification('Serveur non disponible. Vérifiez que le serveur est lancé.', 'error');
+                } else {
+                    showNotification('Erreur: ' + error.message, 'error');
+                }
+                
+                return { success: false, error: error.message };
+            } finally {
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            }
+        }
+
+        // Sauvegarde locale
+        function saveLocalQuote(serverQuote = null) {
+            updateCurrentQuote();
+            
+            const quoteData = {
+                ...currentQuote,
+                services: currentServices,
+                savedAt: new Date().toISOString(),
+                serverId: serverQuote ? serverQuote.id || serverQuote._id : null
+            };
+            
+            localStorage.setItem('lastQuote', JSON.stringify(quoteData));
+            
+            // Historique local
+            const history = JSON.parse(localStorage.getItem('quoteHistory') || '[]');
+            history.unshift({
+                id: quoteData.details.number,
+                date: new Date().toISOString(),
+                client: quoteData.client.name,
+                total: quoteData.totals.ttc
+            });
+            localStorage.setItem('quoteHistory', JSON.stringify(history.slice(0, 20)));
+        }
+
+        // Templates prédéfinis
+        function loadTemplate(template) {
+            const templates = {
+                'plomberie': {
+                    services: [
+                        { description: "Remplacement chauffe-eau 200L", quantity: 1, price: 850, tva: 20 },
+                        { description: "Main d'œuvre installation", quantity: 1, price: 300, tva: 20 },
+                        { description: "Tuyauterie cuivre", quantity: 5, price: 25, tva: 20 }
+                    ],
+                    notes: "TVA 20% incluse. Garantie 2 ans pièces et main d'œuvre. Paiement à 50% à la commande.",
+                    warranty: "24"
+                },
+                'electricite': {
+                    services: [
+                        { description: "Tableau électrique neuve norme NFC15-100", quantity: 1, price: 1200, tva: 20 },
+                        { description: "Installation prises et interrupteurs", quantity: 10, price: 45, tva: 20 },
+                        { description: "Câblage et gaines", quantity: 50, price: 8, tva: 20 }
+                    ],
+                    notes: "Certificat Consuel inclus. Garantie décennale. Paiement à 30% à la commande.",
+                    warranty: "24"
+                },
+                'maçonnerie': {
+                    services: [
+                        { description: "Mur en parpaings 20cm", quantity: 10, price: 45, tva: 20 },
+                        { description: "Enduit de façade", quantity: 20, price: 25, tva: 20 },
+                        { description: "Fondations béton armé", quantity: 3, price: 200, tva: 20 }
+                    ],
+                    notes: "Garantie décennale obligatoire. Paiement échelonné selon avancement des travaux.",
+                    warranty: "24"
+                },
+                'peinture': {
+                    services: [
+                        { description: "Peinture acrylique mate", quantity: 15, price: 12, tva: 10 },
+                        { description: "Préparation des supports", quantity: 1, price: 300, tva: 20 },
+                        { description: "Mains d'œuvre peinture", quantity: 1, price: 500, tva: 20 }
+                    ],
+                    notes: "Peinture écologique garantie 5 ans. Paiement à la fin des travaux.",
+                    warranty: "12"
+                },
+                'menuiserie': {
+                    services: [
+                        { description: "Porte d'entrée blindée", quantity: 1, price: 800, tva: 20 },
+                        { description: "Fenêtre PVC double vitrage", quantity: 3, price: 350, tva: 10 },
+                        { description: "Pose et installation", quantity: 1, price: 450, tva: 20 }
+                    ],
+                    notes: "Garantie 5 ans produit, 2 ans main d'œuvre. Paiement 30% à la commande.",
+                    warranty: "12"
+                }
+            };
+            
+            if (templates[template]) {
+                // Réinitialiser les services
+                currentServices = [];
+                serviceCounter = 0;
+                document.getElementById('services-container').innerHTML = '';
+                
+                // Ajouter chaque service
+                templates[template].services.forEach((service, index) => {
+                    serviceCounter++;
+                    const serviceId = serviceCounter;
+                    
+                    const ht = service.quantity * service.price;
+                    const tvaAmount = ht * (service.tva / 100);
+                    const total = ht + tvaAmount;
+                    
+                    currentServices.push({ 
+                        id: serviceId, 
+                        description: service.description, 
+                        quantity: service.quantity, 
+                        price: service.price, 
+                        tva: service.tva, 
+                        total: total 
+                    });
+                    
+                    const serviceDiv = document.createElement('div');
+                    serviceDiv.className = 'service-item-details';
+                    serviceDiv.id = `service-${serviceId}`;
+                    
+                    serviceDiv.innerHTML = `
+                        <input type="text" class="service-desc form-input" value="${service.description}" oninput="updateService(${serviceId})">
+                        <input type="number" class="service-quantity form-input-small form-input" value="${service.quantity}" min="1" oninput="updateService(${serviceId})">
+                        <input type="number" class="service-price form-input-small form-input" value="${service.price}" min="0" step="0.01" oninput="updateService(${serviceId})">
+                        <select class="service-tva form-select" onchange="updateService(${serviceId})">
+                            <option value="20" ${service.tva === 20 ? 'selected' : ''}>20%</option>
+                            <option value="10" ${service.tva === 10 ? 'selected' : ''}>10%</option>
+                            <option value="5.5" ${service.tva === 5.5 ? 'selected' : ''}>5.5%</option>
+                            <option value="0" ${service.tva === 0 ? 'selected' : ''}>0%</option>
+                        </select>
+                        <span class="service-total">${total.toFixed(2)} €</span>
+                        <button class="remove-service" onclick="removeService(${serviceId})">×</button>
+                    `;
+                    
+                    document.getElementById('services-container').appendChild(serviceDiv);
+                });
+                
+                // Mettre à jour les notes
+                document.getElementById('notes').value = templates[template].notes;
+                
+                // Mettre à jour la garantie
+                if (templates[template].warranty) {
+                    document.getElementById('warranty').value = templates[template].warranty;
+                }
+                
+                // Recalculer les totaux
+                calculateTotal();
+                
+                showNotification(`Template ${template} chargé avec succès`, 'success');
+            }
+        }
+
+        // Fonctions utilitaires pour le PDF
+        function formatDateFR(dateStr) {
+            if (!dateStr) return '';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR');
+        }
+
+        function getPaymentMethodText(value) {
+            const methods = {
+                'bank': 'Virement bancaire',
+                'check': 'Chèque',
+                'cash': 'Espèces',
+                'card': 'Carte bancaire'
+            };
+            return methods[value] || 'Virement bancaire';
+        }
+
+        function getLateFeesText() {
+            const select = document.getElementById('lateFees');
+            const value = select.value;
+            if (value === '0') return 'Aucune';
+            if (value === '10') return '10% après 30 jours de retard';
+            if (value === 'legal') return 'Taux d\'intérêt légal';
+            return 'Selon conditions générales';
+        }
+
+        // Export PDF corrigé
+        async function exportPDF() {
+            const exportBtn = document.querySelector('.export-btn');
+            const originalText = exportBtn.innerHTML;
+            
+            exportBtn.innerHTML = '<span class="loader"></span> Génération PDF...';
+            exportBtn.disabled = true;
+            
+            try {
+                // 1. Valider les données
+                if (!document.getElementById('clientName').value) {
+                    throw new Error('Veuillez saisir le nom du client');
+                }
+                
+                if (currentServices.length === 0) {
+                    throw new Error('Ajoutez au moins une prestation');
+                }
+                
+                // 2. Sauvegarder sur le serveur (optionnel, mais recommandé)
+                const saveResult = await saveQuoteToAPI();
+                
+                if (!saveResult.success) {
+                    // Si échec de sauvegarde, continuer quand même pour le PDF
+                    showNotification('Génération du PDF sans sauvegarde...', 'warning');
+                }
+                
+                // 3. Générer le PDF
+                const doc = new jsPDF();
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const margin = 20;
+                let y = 20;
+                
+                // === EN-TÊTE ===
+                doc.setFillColor(37, 99, 235);
+                doc.rect(0, 0, pageWidth, 40, 'F');
+                
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
+                doc.setFont('helvetica', 'bold');
+                doc.text('DEVIS', margin, 25);
+                
+                doc.setFontSize(10);
+                doc.text(`N°: ${currentQuote.details.number || currentQuote.id}`, pageWidth - margin, 20, { align: 'right' });
+                doc.text(`Date: ${formatDateFR(currentQuote.details.date || '')}`, pageWidth - margin, 27, { align: 'right' });
+                doc.text(`Validité: ${document.getElementById('validUntilDays').value} jours`, pageWidth - margin, 34, { align: 'right' });
+                
+                // === ENTREPRISE & CLIENT ===
+                y = 50;
+                doc.setTextColor(0, 0, 0);
+                
+                // Colonne entreprise
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text('FACTURÉ PAR', margin, y);
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(10);
+                
+                y += 7;
+                doc.text(currentQuote.company.name || 'Votre Entreprise', margin, y);
+                y += 5;
+                if (currentQuote.company.address) {
+                    doc.text(currentQuote.company.address, margin, y);
+                    y += 5;
+                }
+                if (currentQuote.company.siret) {
+                    doc.text(`SIRET: ${currentQuote.company.siret}`, margin, y);
+                    y += 5;
+                }
+                if (currentQuote.company.phone) {
+                    doc.text(`Tél: ${currentQuote.company.phone}`, margin, y);
+                    y += 5;
+                }
+                if (currentQuote.company.email) {
+                    doc.text(`Email: ${currentQuote.company.email}`, margin, y);
+                    y += 5;
+                }
+                
+                // Colonne client
+                const clientY = 50;
+                doc.setFont('helvetica', 'bold');
+                doc.text('CLIENT', pageWidth - margin, clientY, { align: 'right' });
+                doc.setFont('helvetica', 'normal');
+                
+                let clientTextY = clientY + 7;
+                if (currentQuote.client.name) {
+                    doc.text(currentQuote.client.name, pageWidth - margin, clientTextY, { align: 'right' });
+                    clientTextY += 5;
+                }
+                if (currentQuote.client.address) {
+                    doc.text(currentQuote.client.address, pageWidth - margin, clientTextY, { align: 'right' });
+                    clientTextY += 5;
+                }
+                if (currentQuote.client.email) {
+                    doc.text(`Email: ${currentQuote.client.email}`, pageWidth - margin, clientTextY, { align: 'right' });
+                    clientTextY += 5;
+                }
+                if (currentQuote.client.phone) {
+                    doc.text(`Tél: ${currentQuote.client.phone}`, pageWidth - margin, clientTextY, { align: 'right' });
+                    clientTextY += 5;
+                }
+                
+                // === PRESTATIONS ===
+                y = Math.max(y, clientTextY) + 20;
+                
+                // En-tête tableau
+                doc.setFillColor(240, 249, 255);
+                doc.rect(margin, y - 5, pageWidth - (margin * 2), 8, 'F');
+                
+                const col1 = margin;
+                const col2 = col1 + 100;
+                const col3 = col2 + 30;
+                const col4 = col3 + 30;
+                const col5 = col4 + 30;
+                
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(30, 64, 175);
+                doc.text('Description', col1, y);
+                doc.text('Qté', col2, y);
+                doc.text('Prix unitaire', col3, y);
+                doc.text('TVA', col4, y);
+                doc.text('Total', col5, y);
+                
+                // Lignes
+                y += 10;
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(9);
+                
+                currentServices.forEach((service, index) => {
+                    if (index % 2 === 0) {
+                        doc.setFillColor(248, 250, 252);
+                        doc.rect(margin, y - 3, pageWidth - (margin * 2), 8, 'F');
+                    }
+                    
+                    // Description (simplifiée)
+                    let desc = service.description || 'Prestation';
+                    if (desc.length > 30) {
+                        desc = desc.substring(0, 30) + '...';
+                    }
+                    doc.text(desc, col1, y);
+                    
+                    doc.text(service.quantity.toString(), col2, y);
+                    doc.text(service.price.toFixed(2) + ' €', col3, y);
+                    doc.text(service.tva + ' %', col4, y);
+                    doc.text(service.total.toFixed(2) + ' €', col5, y);
+                    
+                    y += 7;
+                    
+                    // Nouvelle page si besoin
+                    if (y > 250) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                });
+                
+                // === TOTAUX ===
+                y += 10;
+                doc.setDrawColor(200, 200, 200);
+                doc.line(pageWidth - margin - 120, y, pageWidth - margin, y);
+                
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'bold');
+                
+                y += 8;
+                doc.text('Total HT:', pageWidth - margin - 100, y);
+                doc.text(currentQuote.totals.ht.toFixed(2) + ' €', pageWidth - margin, y, { align: 'right' });
+                
+                y += 6;
+                doc.text('TVA:', pageWidth - margin - 100, y);
+                doc.text(currentQuote.totals.tva.toFixed(2) + ' €', pageWidth - margin, y, { align: 'right' });
+                
+                y += 10;
+                doc.setFontSize(12);
+                doc.setTextColor(37, 99, 235);
+                doc.text('Total TTC:', pageWidth - margin - 100, y);
+                doc.text(currentQuote.totals.ttc.toFixed(2) + ' €', pageWidth - margin, y, { align: 'right' });
+                
+                // === CONDITIONS ===
+                y += 15;
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                
+                const conditions = [];
+                
+                // Conditions de paiement
+                const paymentTerms = document.getElementById('paymentTerms');
+                const paymentMethod = document.getElementById('paymentMethod');
+                const warranty = document.getElementById('warranty');
+                
+                if (paymentTerms && paymentTerms.value) {
+                    conditions.push(`Délai de paiement: ${paymentTerms.value} jours`);
+                }
+                
+                if (paymentMethod && paymentMethod.value) {
+                    conditions.push(`Mode de règlement: ${getPaymentMethodText(paymentMethod.value)}`);
+                }
+                
+                if (warranty && warranty.value) {
+                    conditions.push(`Garantie: ${warranty.value === 'none' ? 'Sans garantie' : warranty.value + ' mois'}`);
+                }
+                
+                if (currentQuote.details.notes && currentQuote.details.notes.trim() !== '') {
+                    conditions.push(`Notes: ${currentQuote.details.notes}`);
+                }
+                
+                conditions.forEach(condition => {
+                    if (y > 270) {
+                        doc.addPage();
+                        y = 20;
+                    }
+                    doc.text(condition, margin, y);
+                    y += 5;
+                });
+                
+                // === SIGNATURE ===
+                y += 10;
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text('Devis généré avec DevisPro - devispro.fr', margin, y);
+                doc.text(`Document généré le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth - margin, y, { align: 'right' });
+                
+                y += 10;
+                doc.setDrawColor(200, 200, 200);
+                doc.line(margin, y, pageWidth / 2 - 10, y);
+                doc.line(pageWidth / 2 + 10, y, pageWidth - margin, y);
+                
+                y += 15;
+                doc.setFontSize(9);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Le client', margin + 30, y);
+                doc.text('L\'artisan', pageWidth - margin - 30, y, { align: 'right' });
+                
+                // Sauvegarder le PDF
+                const filename = `devis-${currentQuote.details.number || currentQuote.id}.pdf`;
+                doc.save(filename);
+                
+                showNotification('PDF téléchargé avec succès !', 'success');
+                
+            } catch (error) {
+                console.error('Erreur génération PDF:', error);
+                showNotification('Erreur: ' + error.message, 'error');
+            } finally {
+                exportBtn.innerHTML = originalText;
+                exportBtn.disabled = false;
+            }
+        }
+
+        // Réinitialiser le devis
+        function resetQuote() {
+            if (confirm('Voulez-vous créer un nouveau devis ? Les modifications non sauvegardées seront perdues.')) {
+                // Réinitialiser les champs
+                document.getElementById('companyName').value = '';
+                document.getElementById('companyAddress').value = '';
+                document.getElementById('companySIRET').value = '';
+                document.getElementById('companyEmail').value = '';
+                document.getElementById('companyPhone').value = '';
+                
+                document.getElementById('clientName').value = '';
+                document.getElementById('clientAddress').value = '';
+                document.getElementById('clientEmail').value = '';
+                document.getElementById('clientPhone').value = '';
+                
+                // Nouveau numéro de devis
+                const today = new Date();
+                const quoteNumber = 'DEV-' + today.getFullYear() + '-' + 
+                    String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(Math.floor(Math.random() * 1000)).padStart(3, '0');
+                document.getElementById('quoteNumber').value = quoteNumber;
+                
+                const todayStr = today.toISOString().split('T')[0];
+                document.getElementById('quoteDate').value = todayStr;
+                document.getElementById('signatureDate').value = todayStr;
+                
+                // Réinitialiser les conditions
+                document.getElementById('paymentTerms').value = '30';
+                document.getElementById('paymentMethod').value = 'bank';
+                document.getElementById('lateFees').value = '0';
+                document.getElementById('warranty').value = '12';
+                document.getElementById('validUntilDays').value = '30';
+                
+                document.getElementById('notes').value = 'Paiement à 50% à la commande, solde à la fin des travaux. Garantie 2 ans main d\'œuvre.';
+                
+                // Réinitialiser les prestations
+                currentServices = [{ id: 1, description: "Prestation principale", quantity: 1, price: 150, tva: 20, total: 180 }];
+                document.getElementById('services-container').innerHTML = `
+                    <div class="service-item-details" id="service-1">
+                        <input type="text" class="service-desc form-input" placeholder="Ex: Intervention plomberie" 
+                               value="Prestation principale" oninput="updateService(1)">
+                        <input type="number" class="service-quantity form-input-small form-input" value="1" min="1" 
+                               oninput="updateService(1)">
+                        <input type="number" class="service-price form-input-small form-input" value="150" min="0" step="0.01" 
+                               oninput="updateService(1)">
+                        <select class="service-tva form-select" onchange="updateService(1)">
+                            <option value="20" selected>20%</option>
+                            <option value="10">10%</option>
+                            <option value="5.5">5.5%</option>
+                            <option value="0">0%</option>
+                        </select>
+                        <span class="service-total">180.00 €</span>
+                        <button class="remove-service" onclick="removeService(1)">×</button>
+                    </div>
+                `;
+                
+                serviceCounter = 1;
+                calculateTotal();
+                updateCurrentQuote();
+                
+                showNotification('Nouveau devis créé !', 'success');
+            }
+        }
+
+        // Déconnexion
+        function logout() {
+            localStorage.removeItem('devispro_token');
+            localStorage.removeItem('devispro_user');
+            localStorage.removeItem('lastQuote');
+            window.location.href = 'login.html';
+        }
+
+        // Notification
+        function showNotification(message, type = 'info') {
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+            
+            notification.innerHTML = `
+                <span>${icon}</span>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+
+        // Animation au scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+    </script>
+</body>
+</html>

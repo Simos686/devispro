@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tableau de bord - DevisPro</title>
+    <!-- jsPDF pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        /* Variables de design épuré - MÊME QUE index.html et create.html */
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --spacing-xl: 8rem;
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Typographie */
+        h1, h2, h3 {
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .nav-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .cta-button {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            text-decoration: none;
+            border: none;
+            border-radius: 0;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .cta-button:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Main Content */
+        .dashboard {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        /* Welcome Section */
+        .welcome-card {
+            background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+            color: white;
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .welcome-content h1 {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .welcome-content p {
+            color: rgba(255, 255, 255, 0.8);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .stat-card {
+            background: var(--primary-light);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.1);
+        }
+
+        .stat-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+            display: inline-block;
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: var(--spacing-xs) 0;
+        }
+
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+        }
+
+        /* Quotes Table */
+        .quotes-section {
+            background: var(--primary-light);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        .quotes-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .quotes-table th {
+            text-align: left;
+            padding: var(--spacing-sm);
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--accent);
+            border-bottom: 2px solid var(--gray-200);
+            background: var(--gray-50);
+        }
+
+        .quotes-table td {
+            padding: var(--spacing-sm);
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .quotes-table tr:hover {
+            background: var(--gray-50);
+        }
+
+        .action-btn {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .view-btn {
+            background: var(--accent);
+            color: white;
+        }
+
+        .view-btn:hover {
+            background: var(--accent-light);
+        }
+
+        .download-btn {
+            background: var(--success);
+            color: white;
+            margin-left: 0.5rem;
+        }
+
+        .download-btn:hover {
+            background: #0da271;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: var(--spacing-xl) var(--spacing-md);
+            color: var(--gray-800);
+        }
+
+        .empty-icon {
+            font-size: 3rem;
+            margin-bottom: var(--spacing-md);
+            opacity: 0.5;
+        }
+
+        /* User Info */
+        .user-info {
+            background: var(--gray-50);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            margin-top: var(--spacing-lg);
+        }
+
+        .user-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+        }
+
+        .user-detail {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .user-detail label {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            display: block;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .user-detail span {
+            font-weight: 500;
+        }
+
+        /* Quick Actions */
+        .quick-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            flex-wrap: wrap;
+            margin-top: var(--spacing-lg);
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: var(--spacing-lg);
+            padding: var(--spacing-md) 0;
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .footer-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+        }
+
+        .copyright {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--gray-800);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-actions {
+                display: none;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .welcome-card {
+                padding: var(--spacing-md);
+            }
+            
+            .quotes-table th,
+            .quotes-table td {
+                padding: var(--spacing-xs);
+                font-size: 0.875rem;
+            }
+            
+            .action-btn {
+                padding: 0.25rem 0.5rem;
+                font-size: 0.75rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .dashboard {
+                padding: var(--spacing-md);
+            }
+            
+            .welcome-content h1 {
+                font-size: 1.5rem;
+            }
+            
+            .stat-value {
+                font-size: 2rem;
+            }
+        }
+
+        /* Animation */
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <a href="index.html" class="logo">DEVISPRO</a>
+            <div class="nav-actions">
+                <a href="create.html" class="nav-link">Créer un devis</a>
+                <a href="pricing.html" class="nav-link">Tarifs</a>
+                <span class="nav-link" id="userEmail"></span>
+                <button onclick="logout()" class="nav-link">🚪 Déconnexion</button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard">
+        <!-- Welcome Section -->
+        <div class="welcome-card animate-in">
+            <div class="welcome-content">
+                <div class="eyebrow">Tableau de bord</div>
+                <h1>Bonjour, <span id="userName"></span> 👋</h1>
+                <p>Gérez vos devis, consultez vos statistiques et créez de nouvelles factures en quelques clics.</p>
+                <a href="create.html" class="cta-button">
+                    <span>+</span>
+                    Créer un nouveau devis
+                </a>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card animate-in">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value" id="monthCount">0</div>
+                <div class="stat-label">Devis ce mois</div>
+            </div>
+            
+            <div class="stat-card animate-in">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalAmount">0€</div>
+                <div class="stat-label">Total facturé</div>
+            </div>
+            
+            <div class="stat-card animate-in">
+                <div class="stat-icon">👥</div>
+                <div class="stat-value" id="clientCount">0</div>
+                <div class="stat-label">Clients</div>
+            </div>
+            
+            <div class="stat-card animate-in">
+                <div class="stat-icon">💎</div>
+                <div class="stat-value" id="creditsCount">3</div>
+                <div class="stat-label">Crédits restants</div>
+                <a href="pricing.html" style="color: var(--accent); font-size: 0.875rem; margin-top: 0.5rem; display: inline-block;">
+                    Ajouter des crédits →
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Quotes -->
+        <div class="quotes-section animate-in">
+            <h2>📋 Vos derniers devis</h2>
+            
+            <div class="table-container">
+                <table class="quotes-table">
+                    <thead>
+                        <tr>
+                            <th>N° Devis</th>
+                            <th>Client</th>
+                            <th>Date</th>
+                            <th>Montant</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="quotesList">
+                        <!-- Rempli dynamiquement -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State -->
+            <div id="emptyState" class="empty-state" style="display: none;">
+                <div class="empty-icon">📄</div>
+                <h3>Aucun devis pour le moment</h3>
+                <p>Créez votre premier devis et commencez à facturer vos clients</p>
+                <a href="create.html" class="cta-button" style="margin-top: var(--spacing-md);">
+                    <span>+</span>
+                    Créer mon premier devis
+                </a>
+            </div>
+        </div>
+
+        <!-- User Info -->
+        <div class="user-info animate-in">
+            <h2>👤 Vos informations</h2>
+            <div class="user-info-grid">
+                <div class="user-detail">
+                    <label>Entreprise</label>
+                    <span id="userCompany">Chargement...</span>
+                </div>
+                <div class="user-detail">
+                    <label>Email</label>
+                    <span id="userEmailInfo">Chargement...</span>
+                </div>
+                <div class="user-detail">
+                    <label>Téléphone</label>
+                    <span id="userPhone">Chargement...</span>
+                </div>
+                <div class="user-detail">
+                    <label>Forfait</label>
+                    <span id="userPlan">Gratuit</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <a href="create.html" class="cta-button">
+                <span>⚡</span>
+                Devis rapide
+            </a>
+            <a href="pricing.html" class="cta-button" style="background: var(--accent);">
+                <span>💎</span>
+                Passer Premium
+            </a>
+            <button onclick="exportAllQuotes()" class="cta-button" style="background: var(--success);">
+                <span>📥</span>
+                Exporter tout
+            </button>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html" class="footer-link">Accueil</a>
+                <a href="create.html" class="footer-link">Créer un devis</a>
+                <a href="pricing.html" class="footer-link">Tarifs</a>
+                <a href="mailto:contact@devispro.fr" class="footer-link">Contact</a>
+            </div>
+            <div class="copyright">© 2024 DevisPro • Générateur de devis pour artisans</div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Vérifier si l'utilisateur est connecté
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+        });
+
+        async function checkAuth() {
+            const token = localStorage.getItem('devispro_token');
+            const user = localStorage.getItem('devispro_user');
+            
+            if (!token || !user) {
+                window.location.href = 'login.html';
+                return;
+            }
+            
+            try {
+                // Charger les données utilisateur depuis localStorage
+                const userData = JSON.parse(user);
+                
+                // Mettre à jour l'interface
+                document.getElementById('userName').textContent = userData.company_name || userData.email;
+                document.getElementById('userEmail').textContent = userData.email;
+                document.getElementById('userEmailInfo').textContent = userData.email;
+                document.getElementById('userCompany').textContent = userData.company_name || 'Non renseigné';
+                document.getElementById('userPhone').textContent = userData.phone || 'Non renseigné';
+                document.getElementById('userPlan').textContent = userData.subscription === 'free' ? 'Gratuit' : 'Premium';
+                document.getElementById('creditsCount').textContent = userData.credits;
+                
+                // Charger les statistiques et devis
+                await loadDashboardData();
+                
+                // Animation
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('animate-in');
+                        }
+                    });
+                }, { threshold: 0.1 });
+
+                document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+                
+            } catch (error) {
+                console.error('Erreur chargement dashboard:', error);
+                showNotification('Erreur de chargement', 'error');
+            }
+        }
+
+        async function loadDashboardData() {
+            const token = localStorage.getItem('devispro_token');
+            
+            try {
+                // Charger les statistiques
+                const statsResponse = await fetch('/api/dashboard/stats', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (statsResponse.ok) {
+                    const statsData = await statsResponse.json();
+                    if (statsData.success) {
+                        document.getElementById('monthCount').textContent = statsData.stats.monthCount;
+                        document.getElementById('totalAmount').textContent = statsData.stats.totalAmount + ' €';
+                        document.getElementById('clientCount').textContent = statsData.stats.clientCount;
+                    }
+                }
+                
+                // Charger les devis
+                const quotesResponse = await fetch('/api/quotes', {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (quotesResponse.ok) {
+                    const quotesData = await quotesResponse.json();
+                    if (quotesData.success) {
+                        displayQuotes(quotesData.quotes);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Erreur chargement données:', error);
+                // Afficher l'état vide
+                document.getElementById('emptyState').style.display = 'block';
+            }
+        }
+
+        function displayQuotes(quotes) {
+            const tbody = document.getElementById('quotesList');
+            const emptyState = document.getElementById('emptyState');
+            
+            if (quotes.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            tbody.innerHTML = '';
+            
+            quotes.forEach(quote => {
+                const row = document.createElement('tr');
+                
+                const date = new Date(quote.created_at).toLocaleDateString('fr-FR');
+                
+                row.innerHTML = `
+                    <td>${quote.quote_number}</td>
+                    <td>${quote.client_name || 'Non renseigné'}</td>
+                    <td>${date}</td>
+                    <td>${quote.total_ttc ? quote.total_ttc.toFixed(2) + ' €' : '0 €'}</td>
+                    <td>
+                        <a href="create.html?quote=${quote.id}" class="action-btn view-btn">👁️ Voir</a>
+                        <button onclick="downloadQuote(${quote.id})" class="action-btn download-btn">📥 PDF</button>
+                    </td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+        }
+
+        function logout() {
+            localStorage.removeItem('devispro_token');
+            localStorage.removeItem('devispro_user');
+            window.location.href = 'login.html';
+        }
+
+        async function downloadQuote(quoteId) {
+            try {
+                const token = localStorage.getItem('devispro_token');
+                const response = await fetch(`/api/quotes/${quoteId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        // Utiliser jsPDF pour générer le PDF
+                        const { jsPDF } = window.jspdf;
+                        const doc = new jsPDF();
+                        
+                        // Générer le PDF (simplifié)
+                        doc.text(`Devis ${data.quote.quote_number}`, 20, 20);
+                        doc.text(`Client: ${data.quote.client_name}`, 20, 30);
+                        doc.text(`Montant: ${data.quote.total_ttc} €`, 20, 40);
+                        doc.text(`Date: ${new Date(data.quote.created_at).toLocaleDateString('fr-FR')}`, 20, 50);
+                        
+                        // Télécharger
+                        doc.save(`devis-${data.quote.quote_number}.pdf`);
+                        
+                        showNotification('PDF généré avec succès', 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Erreur téléchargement:', error);
+                showNotification('Erreur lors de la génération du PDF', 'error');
+            }
+        }
+
+        function exportAllQuotes() {
+            showNotification('Fonctionnalité en développement', 'warning');
+        }
+        async function loadUserQuotes() {
+    try {
+        const token = localStorage.getItem('devispro_token');
+        const response = await fetch('http://localhost:3000/api/quotes', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            if (data.success && data.quotes) {
+                const quotesContainer = document.getElementById('quotesList');
+                quotesContainer.innerHTML = '';
+                
+                data.quotes.forEach(quote => {
+                    const quoteElement = document.createElement('div');
+                    quoteElement.className = 'quote-item';
+                    quoteElement.innerHTML = `
+                        <div>
+                            <strong>${quote.number}</strong>
+                            <div>Client: ${quote.clientName || 'Non spécifié'}</div>
+                            <div>Total: ${quote.total ? quote.total.toFixed(2) + ' €' : 'Non calculé'}</div>
+                            <div>Statut: <span class="status-${quote.status}">${quote.status}</span></div>
+                        </div>
+                        <div>
+                            <button onclick="viewQuote('${quote._id}')">Voir</button>
+                            <button onclick="downloadQuote('${quote._id}')">PDF</button>
+                        </div>
+                    `;
+                    quotesContainer.appendChild(quoteElement);
+                });
+            }
+        }
+    } catch (error) {
+        console.error('Erreur chargement devis:', error);
+    }
+}
+        function showNotification(message, type = 'info') {
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+            
+            notification.innerHTML = `
+                <span>${icon}</span>
+                <span>${message}</span>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideIn 0.3s ease reverse';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

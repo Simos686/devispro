@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarifs - DevisPro</title>
+    <!-- Stripe -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        /* Variables de design épuré - MÊME QUE TOUTES LES AUTRES PAGES */
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --spacing-xl: 8rem;
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Typographie */
+        h1, h2, h3 {
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        /* Header */
+        .header {
+            position: sticky;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: var(--spacing-sm);
+            align-items: center;
+        }
+
+        .nav-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        /* Main Content */
+        .pricing {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        /* Hero Section */
+        .pricing-hero {
+            text-align: center;
+            padding: var(--spacing-xl) var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .pricing-hero h1 {
+            font-size: clamp(2.5rem, 5vw, 3.5rem);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .pricing-hero p {
+            font-size: 1.25rem;
+            color: var(--gray-800);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* Pricing Grid */
+        .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .pricing-card {
+            background: var(--primary-light);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.1);
+        }
+
+        .pricing-card.popular {
+            border: 2px solid var(--accent);
+            transform: scale(1.02);
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--accent);
+            color: var(--primary-light);
+            padding: 0.5rem 1.5rem;
+            border-radius: 20px;
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+        }
+
+        /* Price Display */
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: var(--spacing-md) 0 var(--spacing-xs);
+        }
+
+        .price-period {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            margin-bottom: var(--spacing-md);
+        }
+
+        /* Features List */
+        .features-list {
+            list-style: none;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .features-list li {
+            padding: var(--spacing-xs) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .features-list li::before {
+            content: '✓';
+            font-family: var(--font-mono);
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        /* Pricing Button */
+        .pricing-button {
+            width: 100%;
+            padding: 1rem 1.5rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            border: none;
+            border-radius: 5px;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            letter-spacing: 0.05em;
+        }
+
+        .pricing-button:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        .pricing-button:disabled {
+            background: var(--gray-200);
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .pricing-button.popular {
+            background: var(--accent);
+        }
+
+        .pricing-button.popular:hover {
+            background: var(--accent-light);
+        }
+
+        /* Credits Section */
+        .credits-section {
+            background: var(--gray-50);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            margin: var(--spacing-xl) 0;
+            text-align: center;
+        }
+
+        .credits-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-sm);
+            margin-top: var(--spacing-lg);
+        }
+
+        .credit-pack {
+            background: var(--primary-light);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .credit-pack:hover {
+            border-color: var(--accent);
+            transform: translateY(-3px);
+        }
+
+        .credit-pack.selected {
+            border: 2px solid var(--accent);
+            background: var(--gray-50);
+        }
+
+        .credit-amount {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .credit-price {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            color: var(--primary-dark);
+            margin: var(--spacing-xs) 0;
+        }
+
+        .credit-unit {
+            font-size: 0.875rem;
+            color: var(--gray-800);
+        }
+
+        /* FAQ Section */
+        .faq-section {
+            margin: var(--spacing-xl) 0;
+        }
+
+        .faq-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .faq-item {
+            background: var(--gray-50);
+            padding: var(--spacing-md);
+            border-radius: 10px;
+        }
+
+        .faq-item h3 {
+            font-size: 1.1rem;
+            margin-bottom: var(--spacing-xs);
+            color: var(--primary-dark);
+        }
+
+        /* Guarantee Banner */
+        .guarantee-banner {
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            border: 1px solid #bae6fd;
+            padding: var(--spacing-md);
+            border-radius: 10px;
+            text-align: center;
+            margin: var(--spacing-lg) 0;
+        }
+
+        .guarantee-banner h3 {
+            color: #0369a1;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 1rem 1.5rem;
+            background: var(--accent);
+            color: white;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+            z-index: 10000;
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            max-width: 400px;
+        }
+
+        .notification.success {
+            background: var(--success);
+        }
+
+        .notification.error {
+            background: var(--danger);
+        }
+
+        .notification.warning {
+            background: var(--warning);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+
+        /* Loader */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Footer */
+        .footer {
+            margin-top: var(--spacing-xl);
+            padding: var(--spacing-lg) 0;
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-sm);
+            flex-wrap: wrap;
+        }
+
+        .footer-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+        }
+
+        .copyright {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--gray-800);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-actions {
+                display: none;
+            }
+            
+            .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .pricing-card.popular {
+                transform: none;
+            }
+            
+            .pricing-hero {
+                padding: var(--spacing-lg) var(--spacing-md);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .pricing {
+                padding: var(--spacing-md);
+            }
+            
+            .credits-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .faq-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animation */
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav">
+            <a href="index.html" class="logo">DEVISPRO</a>
+            <div class="nav-actions">
+                <a href="create.html" class="nav-link">Créer un devis</a>
+                <a href="dashboard.html" class="nav-link">Tableau de bord</a>
+                <a href="login.html" class="nav-link">Connexion</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="pricing">
+        <!-- Hero Section -->
+        <section class="pricing-hero">
+            <div class="eyebrow">Tarifs transparents</div>
+            <h1>Choisissez ce qui vous convient</h1>
+            <p>Professionnel, simple, adapté à vos besoins. Commencez gratuitement avec 3 devis offerts.</p>
+        </section>
+
+        <!-- Pricing Grid -->
+        <div class="pricing-grid">
+            <!-- Forfait Gratuit -->
+            <div class="pricing-card animate-in">
+                <div class="eyebrow">Pour commencer</div>
+                <h2>Gratuit</h2>
+                <div class="price">0€</div>
+                <div class="price-period">Toujours gratuit</div>
+                
+                <ul class="features-list">
+                    <li>3 devis gratuits</li>
+                    <li>Export PDF professionnel</li>
+                    <li>Calcul automatique TVA</li>
+                    <li>Sauvegarde locale</li>
+                    <li>Support email</li>
+                </ul>
+                
+                <button class="pricing-button" onclick="window.location.href='register.html'">
+                    Commencer gratuitement →
+                </button>
+            </div>
+
+            <!-- Forfait Pro (Mensuel) -->
+            <div class="pricing-card popular animate-in">
+                <div class="popular-badge">POPULAIRE</div>
+                <div class="eyebrow">Pour les pros</div>
+                <h2>Pro Mensuel</h2>
+                <div class="price">19€<span class="price-period">/mois</span></div>
+                <div class="price-period">Facturé mensuellement</div>
+                
+                <ul class="features-list">
+                    <li>Devis illimités</li>
+                    <li>PDF ultra-pro</li>
+                    <li>Sauvegarde cloud</li>
+                    <li>Modèles personnalisables</li>
+                    <li>Support prioritaire</li>
+                    <li>Tableau de bord avancé</li>
+                    <li>Statistiques détaillées</li>
+                </ul>
+                
+                <button class="pricing-button popular" onclick="handleSubscription('price_pro_monthly', 'Pro Mensuel - 19€/mois')">
+                    Choisir ce forfait →
+                </button>
+            </div>
+
+            <!-- Forfait Pro (Annuel) -->
+            <div class="pricing-card animate-in">
+                <div class="eyebrow">Économisez</div>
+                <h2>Pro Annuel</h2>
+                <div class="price">190€<span class="price-period">/an</span></div>
+                <div class="price-period">Économisez 2 mois</div>
+                
+                <ul class="features-list">
+                    <li>Tout inclus du Pro Mensuel</li>
+                    <li>2 mois offerts</li>
+                    <li>Priorité support 24/7</li>
+                    <li>Formation en ligne</li>
+                    <li>API d'intégration</li>
+                </ul>
+                
+                <button class="pricing-button" onclick="handleSubscription('price_pro_yearly', 'Pro Annuel - 190€/an')">
+                    Choisir ce forfait →
+                </button>
+            </div>
+        </div>
+
+        <!-- Credits Section -->
+        <section class="credits-section animate-in">
+            <div class="eyebrow">Flexibilité</div>
+            <h2>Ou achetez des crédits</h2>
+            <p style="color: var(--gray-800); max-width: 600px; margin: var(--spacing-sm) auto;">
+                Parfait si vous ne créez que quelques devis par mois. Payez uniquement ce que vous utilisez.
+            </p>
+            
+            <div class="credits-grid">
+                <div class="credit-pack" onclick="selectCreditPack(10, 'price_10_credits')">
+                    <div class="credit-amount">10</div>
+                    <div class="credit-price">15€</div>
+                    <div class="credit-unit">1,50€ / devis</div>
+                </div>
+                
+                <div class="credit-pack" onclick="selectCreditPack(25, 'price_25_credits')">
+                    <div class="credit-amount">25</div>
+                    <div class="credit-price">30€</div>
+                    <div class="credit-unit">1,20€ / devis</div>
+                </div>
+                
+                <div class="credit-pack selected" onclick="selectCreditPack(50, 'price_50_credits')">
+                    <div class="credit-amount">50</div>
+                    <div class="credit-price">50€</div>
+                    <div class="credit-unit">1,00€ / devis</div>
+                    <div style="font-size: 0.75rem; color: var(--accent); margin-top: var(--spacing-xs);">★ Meilleur rapport</div>
+                </div>
+                
+                <div class="credit-pack" onclick="selectCreditPack(100, 'price_100_credits')">
+                    <div class="credit-amount">100</div>
+                    <div class="credit-price">80€</div>
+                    <div class="credit-unit">0,80€ / devis</div>
+                </div>
+            </div>
+            
+            <div style="margin-top: var(--spacing-lg);">
+                <button id="buyCreditsBtn" class="pricing-button" style="max-width: 300px;" onclick="handleBuyCredits()">
+                    Acheter 50 crédits →
+                </button>
+            </div>
+        </section>
+
+        <!-- Guarantee Banner -->
+        <div class="guarantee-banner animate-in">
+            <h3>✅ Garantie satisfait ou remboursé 30 jours</h3>
+            <p style="color: #0369a1; font-size: 0.9rem;">
+                Si DevisPro ne vous convient pas, nous vous remboursons intégralement dans les 30 jours.
+            </p>
+        </div>
+
+        <!-- FAQ Section -->
+        <section class="faq-section animate-in">
+            <div class="eyebrow">Questions fréquentes</div>
+            <h2 style="text-align: center; margin-bottom: var(--spacing-lg);">Vous avez des questions ?</h2>
+            
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h3>🤔 Puis-je changer de forfait ?</h3>
+                    <p>Oui, à tout moment. Le changement prend effet immédiatement et vous êtes facturé au prorata.</p>
+                </div>
+                
+                <div class="faq-item">
+                    <h3>💳 Quels moyens de paiement ?</h3>
+                    <p>Carte bancaire, virement, PayPal. Les paiements sont sécurisés par Stripe.</p>
+                </div>
+                
+                <div class="faq-item">
+                    <h3>🔄 Et si je dépasse mes crédits ?</h3>
+                    <p>Vous pouvez acheter des crédits supplémentaires à tout moment. Pas de coupure brutale.</p>
+                </div>
+                
+                <div class="faq-item">
+                    <h3>📱 Mobile friendly ?</h3>
+                    <p>Absolument ! Créez des devis depuis votre smartphone sur le chantier.</p>
+                </div>
+                
+                <div class="faq-item">
+                    <h3>📧 Support rapide ?</h3>
+                    <p>Réponse sous 24h. Support prioritaire pour les abonnés Pro.</p>
+                </div>
+                
+                <div class="faq-item">
+                    <h3>🔒 Mes données sont-elles sécurisées ?</h3>
+                    <p>Oui, chiffrement SSL, sauvegarde quotidienne, conformité RGPD.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-links">
+                <a href="index.html" class="footer-link">Accueil</a>
+                <a href="create.html" class="footer-link">Créer un devis</a>
+                <a href="dashboard.html" class="footer-link">Tableau de bord</a>
+                <a href="pricing.html" class="footer-link">Tarifs</a>
+                <a href="mailto:contact@devispro.fr" class="footer-link">Contact</a>
+            </div>
+            <div class="copyright">© 2024 DevisPro • Générateur de devis pour artisans • Tous droits réservés</div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // ============================================
+        // CONFIGURATION - À ADAPTER AVEC VOS INFOS
+        // ============================================
+        
+        // 1. REMPLACEZ CE DOMAINE PAR LE VÔTRE !
+        const API_BASE_URL = window.location.origin; // Utilise le domaine actuel
+        
+        // 2. REMPLACEZ CES IDs AVEC VOS VRAIS IDs STRIPE !
+        const STRIPE_PRICES = {
+            // Abonnements (à obtenir depuis Stripe Dashboard)
+            'price_pro_monthly': 'prod_TkpA2OinE9ezUp',   // ← REMPLACER
+            'price_pro_yearly': 'prod_TkpAPQj4uTpD4S',  // ← REMPLACER
+            
+            // Crédits (à obtenir depuis Stripe Dashboard)
+            'price_10_credits': 'prod_TkpBSnpHG3W6xE',  // ← REMPLACER
+            'price_25_credits': 'prod_TkpBHea6ccQMo5',  // ← REMPLACER
+            'price_50_credits': 'price_1PqXYZABCDEfGhIjKlMnOpT',  // ← REMPLACER
+            'price_100_credits': 'price_1PqXYZABCDEfGhIjKlMnOpU'  // ← REMPLACER
+        };
+        
+        // 3. REMPLACEZ AVEC VOTRE CLÉ PUBLIQUE STRIPE LIVE !
+        const STRIPE_PUBLIC_KEY = 'pk_test_51S5wIk8W7xqYoZIBtlQnkJcWTAXeqVlDo4s3LWc8OpqLTSEaPu67wuyYC7goZgtRUnFZphaa7IUtHjHScH9eIkC300wh4oeTuQ'; // ← REMPLACER
+        
+        // ============================================
+        // VARIABLES GLOBALES
+        // ============================================
+        let selectedCreditPack = 50;
+        let selectedPriceId = 'price_50_credits';
+        let stripeInstance = null;
+        
+        // ============================================
+        // INITIALISATION
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('💰 Page tarifs initialisée');
+            
+            // Initialiser Stripe
+            if (typeof Stripe !== 'undefined' && STRIPE_PUBLIC_KEY) {
+                stripeInstance = Stripe(STRIPE_PUBLIC_KEY);
+                console.log('✅ Stripe initialisé');
+            } else {
+                console.warn('⚠️ Stripe non initialisé - vérifiez la clé publique');
+            }
+            
+            // Vérifier l'état de l'utilisateur
+            checkUserStatus();
+            
+            // Vérifier les paramètres URL
+            checkUrlParams();
+            
+            // Observer les animations
+            initAnimations();
+        });
+        
+        // ============================================
+        // FONCTIONS PRINCIPALES
+        // ============================================
+        
+        // Sélectionner un pack de crédits
+        function selectCreditPack(credits, priceId) {
+            selectedCreditPack = credits;
+            selectedPriceId = priceId;
+            
+            // Retirer la sélection précédente
+            document.querySelectorAll('.credit-pack').forEach(pack => {
+                pack.classList.remove('selected');
+            });
+            
+            // Ajouter la sélection actuelle
+            event.currentTarget.classList.add('selected');
+            
+            // Mettre à jour le bouton
+            document.getElementById('buyCreditsBtn').textContent = `Acheter ${credits} crédits →`;
+            
+            showNotification(`Pack de ${credits} crédits sélectionné`, 'info');
+        }
+        
+        // Gérer un abonnement
+        async function handleSubscription(priceIdKey, planName) {
+            const token = localStorage.getItem('devispro_token');
+            
+            if (!token) {
+                showNotification('Veuillez vous connecter pour souscrire à un abonnement', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html?redirect=pricing';
+                }, 1500);
+                return;
+            }
+            
+            const priceId = STRIPE_PRICES[priceIdKey];
+            
+            if (!priceId || priceId.includes('XYZ')) {
+                showNotification('Configuration Stripe incomplète. Contactez l\'administrateur.', 'error');
+                return;
+            }
+            
+            const button = event.target;
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loader"></span> Préparation...';
+            button.disabled = true;
+            
+            try {
+                // Créer la session de paiement
+                const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        priceId: priceId,
+                        successUrl: `${window.location.origin}/dashboard.html?session_id={CHECKOUT_SESSION_ID}&success=true`,
+                        cancelUrl: `${window.location.origin}/pricing.html?cancelled=true`,
+                        metadata: {
+                            type: 'subscription',
+                            plan: planName
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur serveur');
+                }
+                
+                if (data.success && data.url) {
+                    // Redirection vers Stripe
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || 'Erreur lors de la création du paiement');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur abonnement:', error);
+                showNotification(`Erreur: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        // Acheter des crédits
+        async function handleBuyCredits() {
+            const token = localStorage.getItem('devispro_token');
+            
+            if (!token) {
+                showNotification('Veuillez vous connecter pour acheter des crédits', 'error');
+                setTimeout(() => {
+                    window.location.href = 'login.html?redirect=pricing';
+                }, 1500);
+                return;
+            }
+            
+            const priceId = STRIPE_PRICES[selectedPriceId];
+            
+            if (!priceId || priceId.includes('XYZ')) {
+                showNotification('Configuration Stripe incomplète. Contactez l\'administrateur.', 'error');
+                return;
+            }
+            
+            const button = document.getElementById('buyCreditsBtn');
+            const originalText = button.innerHTML;
+            button.innerHTML = '<span class="loader"></span> Préparation...';
+            button.disabled = true;
+            
+            try {
+                // Créer la session de paiement
+                const response = await fetch(`${API_BASE_URL}/api/create-checkout-session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        priceId: priceId,
+                        successUrl: `${window.location.origin}/dashboard.html?credits=${selectedCreditPack}&session_id={CHECKOUT_SESSION_ID}&success=true`,
+                        cancelUrl: `${window.location.origin}/pricing.html?cancelled=true`,
+                        metadata: {
+                            type: 'credits',
+                            credits: selectedCreditPack,
+                            priceId: selectedPriceId
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Erreur serveur');
+                }
+                
+                if (data.success && data.url) {
+                    // Redirection vers Stripe
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || 'Erreur lors de la création du paiement');
+                }
+                
+            } catch (error) {
+                console.error('❌ Erreur achat crédits:', error);
+                showNotification(`Erreur: ${error.message}`, 'error');
+                button.innerHTML = originalText;
+                button.disabled = false;
+            }
+        }
+        
+        // ============================================
+        // FONCTIONS UTILITAIRES
+        // ============================================
+        
+        // Vérifier l'état de l'utilisateur
+        async function checkUserStatus() {
+            const token = localStorage.getItem('devispro_token');
+            const userData = localStorage.getItem('devispro_user');
+            
+            if (token && userData) {
+                try {
+                    // Mettre à jour l'affichage avec les données locales
+                    const user = JSON.parse(userData);
+                    updateUserDisplay(user);
+                    
+                    // Récupérer les infos à jour depuis l'API
+                    const response = await fetch(`${API_BASE_URL}/api/user`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success && data.user) {
+                            updateUserDisplay(data.user);
+                            localStorage.setItem('devispro_user', JSON.stringify(data.user));
+                        }
+                    }
+                } catch (error) {
+                    console.error('⚠️ Erreur vérification utilisateur:', error);
+                }
+            }
+        }
+        
+        // Mettre à jour l'affichage utilisateur
+        function updateUserDisplay(user) {
+            const navActions = document.querySelector('.nav-actions');
+            if (!navActions) return;
+            
+            const displayName = user.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : user.email;
+            const isPremium = user.subscription && user.subscription !== 'free';
+            
+            navActions.innerHTML = `
+                <a href="create.html" class="nav-link">Créer un devis</a>
+                <a href="dashboard.html" class="nav-link">Tableau de bord</a>
+                <span class="nav-link" style="color: var(--accent);">
+                    👤 ${displayName}
+                    ${isPremium ? 
+                        `<span style="background: var(--success); color: white; padding: 0.1rem 0.5rem; border-radius: 10px; font-size: 0.7rem; margin-left: 0.5rem;">${user.subscription}</span>` : 
+                        ''}
+                </span>
+            `;
+            
+            // Désactiver les boutons si déjà premium
+            if (isPremium) {
+                document.querySelectorAll('.pricing-button').forEach(btn => {
+                    if (btn.textContent.includes('Choisir ce forfait')) {
+                        btn.innerHTML = '✔️ Déjà abonné';
+                        btn.disabled = true;
+                        btn.style.background = 'var(--success)';
+                    }
+                });
+            }
+        }
+        
+        // Vérifier les paramètres URL
+        function checkUrlParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            if (urlParams.has('success')) {
+                showNotification('🎉 Paiement réussi ! Votre compte a été mis à jour.', 'success');
+                // Nettoyer l'URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+                // Recharger les infos utilisateur
+                setTimeout(checkUserStatus, 1000);
+            }
+            
+            if (urlParams.has('credits')) {
+                const credits = urlParams.get('credits');
+                showNotification(`✅ ${credits} crédits ajoutés à votre compte !`, 'success');
+                window.history.replaceState({}, document.title, window.location.pathname);
+                setTimeout(checkUserStatus, 1000);
+            }
+            
+            if (urlParams.has('cancelled')) {
+                showNotification('Paiement annulé. Aucun prélèvement n\'a été effectué.', 'warning');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+        
+        // Initialiser les animations
+        function initAnimations() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('animate-in');
+                    }
+                });
+            }, { threshold: 0.1 });
+            
+            document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+        }
+        
+        // Afficher une notification
+        function showNotification(message, type = 'info') {
+            const oldNotifications = document.querySelectorAll('.notification');
+            oldNotifications.forEach(n => n.remove());
+            
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            
+            let icon = '💡';
+            if (type === 'success') icon = '✅';
+            if (type === 'error') icon = '❌';
+            if (type === 'warning') icon = '⚠️';
+            
+            notification.innerHTML = `
+                <span>${icon}</span>
+                <span style="flex: 1;">${message}</span>
+                <button onclick="this.parentElement.remove()" style="background: none; border: none; color: white; cursor: pointer; font-size: 1.2rem;">×</button>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-suppression après 5 secondes
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.style.animation = 'slideOut 0.3s ease';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // Helper pour obtenir le prix
+        function getPriceFromId(priceId) {
+            const prices = {
+                'price_10_credits': '15',
+                'price_25_credits': '30', 
+                'price_50_credits': '50',
+                'price_100_credits': '80'
+            };
+            return prices[priceId] || '50';
+        }
+        
+        // Debug helper
+        window.debugStripe = function() {
+            console.log('🔍 Debug Stripe:');
+            console.log('- API Base URL:', API_BASE_URL);
+            console.log('- Stripe Public Key:', STRIPE_PUBLIC_KEY ? '✅ Définie' : '❌ Manquante');
+            console.log('- Price IDs:', STRIPE_PRICES);
+            console.log('- User Token:', localStorage.getItem('devispro_token') ? '✅ Présent' : '❌ Absent');
+            console.log('- User Data:', localStorage.getItem('devispro_user'));
+        };
+        
+        // Pour tester rapidement
+        window.testSubscription = function() {
+            console.log('🧪 Test abonnement...');
+            if (!localStorage.getItem('devispro_token')) {
+                alert('Veuillez vous connecter d\'abord');
+                return;
+            }
+            handleSubscription('price_pro_monthly', 'Test Mensuel');
+        };
+    </script>
+</body>
+</html>

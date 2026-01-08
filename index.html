@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevisPro - Générateur de devis professionnel pour artisans</title>
+    <script>
+        const API_CONFIG = {
+            BASE_URL: 'http://localhost:3000',
+            ENDPOINTS: {
+                LOGIN: '/api/login',
+                REGISTER: '/api/register',
+                ME: '/api/me',
+                QUOTES: '/api/quotes',
+                CREDITS: '/api/credits'
+            }
+        };
+    </script>
+    <style>
+        /* Variables de design épuré */
+        :root {
+            --primary-dark: #1a1a1a;
+            --primary-light: #ffffff;
+            --accent: #2563eb;
+            --accent-light: #3b82f6;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --gray-50: #f9fafb;
+            --gray-100: #f3f4f6;
+            --gray-200: #e5e7eb;
+            --gray-800: #1f2937;
+            --spacing-xs: 0.5rem;
+            --spacing-sm: 1rem;
+            --spacing-md: 2rem;
+            --spacing-lg: 4rem;
+            --spacing-xl: 8rem;
+            --font-primary: 'Inter', -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--primary-dark);
+            background: var(--primary-light);
+            line-height: 1.6;
+        }
+
+        /* Typographie */
+        h1, h2, h3 {
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        h1 {
+            font-size: clamp(2.5rem, 5vw, 4rem);
+            letter-spacing: -0.02em;
+        }
+
+        .eyebrow {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent);
+            margin-bottom: var(--spacing-sm);
+        }
+
+        /* Container */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        /* Header */
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 1000;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-family: var(--font-mono);
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--primary-dark);
+            text-decoration: none;
+            letter-spacing: -0.02em;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: var(--spacing-lg);
+            align-items: center;
+        }
+
+        .nav-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+            letter-spacing: 0.05em;
+            transition: color 0.3s;
+        }
+
+        .nav-link:hover {
+            color: var(--accent);
+        }
+
+        .cta-button {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            padding: 0.75rem 1.5rem;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            text-decoration: none;
+            border-radius: 0;
+            letter-spacing: 0.05em;
+            transition: all 0.3s;
+        }
+
+        .cta-button:hover {
+            background: var(--accent);
+            transform: translateY(-2px);
+        }
+
+        /* Hero Section */
+        .hero {
+            padding-top: 8rem;
+            padding-bottom: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--spacing-xl);
+            align-items: center;
+        }
+
+        .hero-title {
+            font-size: clamp(3rem, 6vw, 5rem);
+            line-height: 1;
+            margin-bottom: var(--spacing-md);
+        }
+
+        .hero-subtitle {
+            font-size: 1.25rem;
+            color: var(--gray-800);
+            margin-bottom: var(--spacing-lg);
+            max-width: 500px;
+        }
+
+        .hero-visual {
+            position: relative;
+            height: 500px;
+            background: linear-gradient(45deg, var(--gray-100), var(--gray-200));
+            border-radius: 20px;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--spacing-md);
+        }
+
+        /* Calculator Preview */
+        .calculator-preview {
+            width: 100%;
+            height: 100%;
+            background: white;
+            border-radius: 10px;
+            padding: var(--spacing-md);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .calc-line {
+            display: flex;
+            justify-content: space-between;
+            padding: var(--spacing-sm) 0;
+            border-bottom: 1px solid var(--gray-200);
+        }
+
+        .calc-total {
+            background: var(--accent);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: 5px;
+            margin-top: var(--spacing-md);
+            font-weight: bold;
+        }
+
+        /* Features Section */
+        .features {
+            padding: var(--spacing-xl) 0;
+            background: var(--gray-50);
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-md);
+            margin-top: var(--spacing-lg);
+        }
+
+        .feature-card {
+            background: var(--primary-light);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            border: 1px solid var(--gray-200);
+            transition: all 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+            border-color: var(--accent);
+            box-shadow: 0 10px 30px rgba(37, 99, 235, 0.1);
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-sm);
+            display: inline-block;
+        }
+
+        /* How It Works */
+        .process {
+            padding: var(--spacing-xl) 0;
+        }
+
+        .process-steps {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-lg);
+            counter-reset: step-counter;
+        }
+
+        .process-step {
+            position: relative;
+            padding-left: 3rem;
+        }
+
+        .process-step::before {
+            counter-increment: step-counter;
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0;
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        /* Pricing Preview */
+        .pricing-preview {
+            padding: var(--spacing-xl) 0;
+            background: var(--gray-50);
+        }
+
+        .pricing-card {
+            background: var(--primary-light);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            text-align: center;
+            max-width: 400px;
+            margin: 0 auto;
+            border: 2px solid var(--accent);
+            box-shadow: 0 20px 40px rgba(37, 99, 235, 0.1);
+        }
+
+        .price {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--accent);
+            margin: var(--spacing-md) 0;
+        }
+
+        .pricing-list {
+            list-style: none;
+            margin: var(--spacing-lg) 0;
+            text-align: left;
+        }
+
+        .pricing-list li {
+            padding: var(--spacing-xs) 0;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xs);
+        }
+
+        .pricing-list li::before {
+            content: '✓';
+            color: var(--success);
+            font-family: var(--font-mono);
+            font-weight: bold;
+        }
+
+        /* Testimonials */
+        .testimonials {
+            padding: var(--spacing-xl) 0;
+        }
+
+        .testimonial-card {
+            background: var(--primary-light);
+            padding: var(--spacing-lg);
+            border-radius: 10px;
+            border-left: 4px solid var(--accent);
+            margin: var(--spacing-md) 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+        }
+
+        /* CTA Section */
+        .cta-section {
+            padding: var(--spacing-xl) 0;
+            background: var(--primary-dark);
+            color: var(--primary-light);
+            text-align: center;
+        }
+
+        /* Footer */
+        .footer {
+            padding: var(--spacing-lg) 0;
+            border-top: 1px solid var(--gray-200);
+            text-align: center;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--spacing-md);
+        }
+
+        .footer-links {
+            display: flex;
+            gap: var(--spacing-lg);
+        }
+
+        .footer-link {
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+            color: var(--gray-800);
+            text-decoration: none;
+        }
+
+        .copyright {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--gray-800);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+            }
+            .nav-links {
+                display: none;
+            }
+            .hero {
+                padding-top: 6rem;
+            }
+            .hero-visual {
+                height: 300px;
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease-out forwards;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <a href="#" class="logo">DEVISPRO</a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Fonctionnalités</a>
+                <a href="#process" class="nav-link">Comment ça marche</a>
+                <a href="#pricing" class="nav-link">Tarifs</a>
+                <a href="#testimonials" class="nav-link">Témoignages</a>
+                <a href="login.html" class="cta-button">Se connecter</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero container">
+        <div class="hero-grid">
+            <div class="hero-content animate-in">
+                <div class="eyebrow">Pour artisans & indépendants</div>
+                <h1 class="hero-title">DEVIS EN 2 MINUTES</h1>
+                <p class="hero-subtitle">
+                    Stop aux devis compliqués. Générez des devis professionnels en quelques clics, 
+                    exportez en PDF, et facturez plus vite. <strong>3 devis gratuits</strong> pour commencer.
+                </p>
+                <div style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-md);">
+                    <a href="register.html" class="cta-button">Commencer gratuitement →</a>
+                    <a href="#pricing" class="nav-link" style="align-self: center;">Voir les tarifs</a>
+                </div>
+                <p style="margin-top: var(--spacing-sm); color: var(--gray-800); font-size: 0.9rem;">
+                    <i class="fas fa-check" style="color: var(--success);"></i> Aucune carte bancaire requise
+                </p>
+            </div>
+            <div class="hero-visual animate-in">
+                <div class="calculator-preview">
+                    <h3 style="margin-bottom: var(--spacing-md); color: var(--accent);">Devis Plomberie</h3>
+                    <div class="calc-line">
+                        <span>Remplacement chauffe-eau</span>
+                        <span>850 €</span>
+                    </div>
+                    <div class="calc-line">
+                        <span>Main d'œuvre</span>
+                        <span>300 €</span>
+                    </div>
+                    <div class="calc-line">
+                        <span>TVA 20%</span>
+                        <span>230 €</span>
+                    </div>
+                    <div class="calc-total">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>TOTAL TTC</span>
+                            <span>1.380 €</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: var(--spacing-md); text-align: center; color: var(--gray-800); font-size: 0.9rem;">
+                        <i class="fas fa-file-pdf"></i> PDF généré automatiquement
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <div class="eyebrow section-title">Pourquoi DevisPro</div>
+            <h2 class="section-title">Tout ce dont vous avez besoin</h2>
+            
+            <div class="features-grid">
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">⚡</div>
+                    <h3>Ultra Rapide</h3>
+                    <p>Créez un devis professionnel en moins de 2 minutes. Interface simplifiée pour gagner du temps.</p>
+                </div>
+                
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🎁</div>
+                    <h3>3 Devis Gratuits</h3>
+                    <p>Commencez sans engagement. 3 devis complets offerts pour tester toutes les fonctionnalités.</p>
+                </div>
+                
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">🤖</div>
+                    <h3>Calculs Automatiques</h3>
+                    <p>TVA, totaux HT/TTC, réductions... Tout est calculé automatiquement sans erreur.</p>
+                </div>
+                
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">📄</div>
+                    <h3>PDF Professionnel</h3>
+                    <p>Exportez un PDF élégant avec votre logo, prêt à envoyer à vos clients.</p>
+                </div>
+                
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">💾</div>
+                    <h3>Sauvegarde Cloud</h3>
+                    <p>Tous vos devis sauvegardés automatiquement. Accédez-y depuis n'importe quel appareil.</p>
+                </div>
+                
+                <div class="feature-card animate-in">
+                    <div class="feature-icon">📱</div>
+                    <h3>Mobile First</h3>
+                    <p>Utilisez l'application depuis votre smartphone sur le chantier.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="process" class="process">
+        <div class="container">
+            <div class="eyebrow section-title">Simple comme 1, 2, 3</div>
+            <h2 class="section-title">Comment ça marche</h2>
+            
+            <div class="process-steps">
+                <div class="process-step animate-in">
+                    <h3>1. Créez votre compte</h3>
+                    <p>Inscrivez-vous gratuitement en 30 secondes et obtenez 3 devis offerts.</p>
+                </div>
+                <div class="process-step animate-in">
+                    <h3>2. Remplissez le formulaire</h3>
+                    <p>Saisissez les informations client et vos prestations via notre interface intuitive.</p>
+                </div>
+                <div class="process-step animate-in">
+                    <h3>3. Exportez et envoyez</h3>
+                    <p>Téléchargez un PDF professionnel ou envoyez-le directement par email au client.</p>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: var(--spacing-lg);">
+                <a href="register.html" class="cta-button">Commencer maintenant →</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Preview -->
+    <section id="pricing" class="pricing-preview">
+        <div class="container">
+            <div class="eyebrow section-title">Tarification flexible</div>
+            <h2 class="section-title">Choisissez ce qui vous convient</h2>
+            
+            <div class="pricing-card animate-in">
+                <h3>Offre de démarrage</h3>
+                <div class="price">Gratuit</div>
+                <p style="color: var(--gray-800); margin-bottom: var(--spacing-md);">Pour essayer sans risque</p>
+                
+                <ul class="pricing-list">
+                    <li>3 devis gratuits</li>
+                    <li>Export PDF professionnel</li>
+                    <li>Calcul automatique TVA</li>
+                    <li>Sauvegarde locale</li>
+                    <li>Support email</li>
+                </ul>
+                
+                <a href="register.html" class="cta-button" style="width: 100%; display: block; text-decoration: none;">
+                    Commencer gratuitement →
+                </a>
+                
+                <p style="margin-top: var(--spacing-sm); font-size: 0.9rem; color: var(--gray-800);">
+                    Puis choisissez votre forfait
+                </p>
+            </div>
+            
+            <div style="text-align: center; margin-top: var(--spacing-lg);">
+                <a href="pricing.html" class="nav-link" style="font-size: 1.1rem;">
+                    Voir tous les forfaits et tarifs détaillés →
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Testimonials -->
+    <section id="testimonials" class="testimonials">
+        <div class="container">
+            <div class="eyebrow section-title">Ils utilisent DevisPro</div>
+            <h2 class="section-title">Ce que disent les artisans</h2>
+            
+            <div class="testimonial-card animate-in">
+                <p style="font-size: 1.25rem; margin-bottom: var(--spacing-md); font-style: italic;">
+                    "J'ai utilisé mes 3 devis gratuits et j'ai immédiatement adopté l'abonnement mensuel. 
+                    Je gagne au moins 2 heures par jour. Les clients adorent recevoir leurs devis en PDF professionnel instantanément !"
+                </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <div style="width: 50px; height: 50px; background: var(--gray-200); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.5rem;">👨‍🔧</span>
+                    </div>
+                    <div>
+                        <strong>Marc, Plombier à Lyon</strong>
+                        <p style="color: var(--gray-800); font-size: 0.9rem;">Utilise DevisPro depuis 6 mois</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="testimonial-card animate-in">
+                <p style="font-size: 1.25rem; margin-bottom: var(--spacing-md); font-style: italic;">
+                    "En tant qu'électricien indépendant, je faisais mes devis à la main. Avec les 3 devis gratuits, 
+                    j'ai pu tester et maintenant j'utilise le pack de crédits. Parfait pour mon volume d'activité !"
+                </p>
+                <div style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <div style="width: 50px; height: 50px; background: var(--gray-200); border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <span style="font-size: 1.5rem;">👨‍💼</span>
+                    </div>
+                    <div>
+                        <strong>Thomas, Électricien indépendant</strong>
+                        <p style="color: var(--gray-800); font-size: 0.9rem;">45 devis générés ce mois-ci</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Final CTA -->
+    <section class="cta-section">
+        <div class="container">
+            <h2 style="color: var(--primary-light); margin-bottom: var(--spacing-md);">
+                Prêt à gagner du temps sur vos devis ?
+            </h2>
+            <p style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); opacity: 0.9;">
+                Rejoignez les milliers d'artisans qui utilisent déjà DevisPro
+            </p>
+            <div style="display: flex; gap: var(--spacing-sm); justify-content: center; flex-wrap: wrap;">
+                <a href="register.html" class="cta-button" style="background: var(--accent);">
+                    🎁 3 devis gratuits
+                </a>
+                <a href="pricing.html" class="cta-button" style="background: transparent; border: 2px solid white;">
+                    Voir tous les tarifs
+                </a>
+                <a href="login.html" class="cta-button" style="background: transparent; border: 2px solid white;">
+                    Déjà inscrit ? Se connecter
+                </a>
+            </div>
+            <p style="margin-top: var(--spacing-lg); opacity: 0.8; font-size: 0.9rem;">
+                Aucune carte bancaire requise pour les 3 devis gratuits
+            </p>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <a href="#" class="logo">DEVISPRO</a>
+                <div class="footer-links">
+                    <a href="mailto:contact@devispro.fr" class="footer-link">contact@devispro.fr</a>
+                    <a href="tel:+33123456789" class="footer-link">01 23 45 67 89</a>
+                    <a href="#" class="footer-link">Mentions légales</a>
+                    <a href="#" class="footer-link">CGV</a>
+                </div>
+                <div class="copyright">© 2024 DevisPro. Solution de devis pour artisans.</div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Animation au scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('animate-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.animate-in').forEach(el => observer.observe(el));
+
+        // Smooth scroll
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
