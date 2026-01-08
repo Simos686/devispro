@@ -43,7 +43,24 @@ app.post('/api/register', (req, res) => {
     console.log('📨 POST /api/register');
     res.json({ success: true, message: 'Register OK' });
 });
+// Après votre route POST /api/login, ajoutez :
 
+// Route GET pour le login (pour debug)
+app.get('/api/login', (req, res) => {
+    console.log('⚠️ GET /api/login appelé (devrait être POST)');
+    res.json({
+        success: false,
+        error: 'Utilisez POST /api/login avec email et password',
+        example: {
+            method: 'POST',
+            url: '/api/login',
+            body: {
+                email: 'test@test.com',
+                password: 'test123'
+            }
+        }
+    });
+});
 // ====================
 // ROUTES HTML (APRÈS API)
 // ====================
@@ -101,3 +118,4 @@ app.listen(PORT, () => {
 ╚══════════════════════════════════════╝
     `);
 });
+
