@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paiement Réussi - DevisPro</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }
+        .success { color: #10b981; font-size: 48px; }
+        .message { margin: 20px 0; }
+        button { background: #2563eb; color: white; padding: 12px 24px; border: none; border-radius: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="success">✅</div>
+    <h1>Paiement Réussi !</h1>
+    <div class="message" id="message">
+        Votre abonnement a été activé avec succès.
+    </div>
+    <p id="details"></p>
+    <button onclick="goToDashboard()">Accéder à mon tableau de bord</button>
+    
+    <script>
+        // Récupérer l'ID de session depuis l'URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const sessionId = urlParams.get('session_id');
+        
+        if (sessionId) {
+            // Vérifier le statut de la session
+            fetch(`/api/check-session/${sessionId}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        document.getElementById('details').innerHTML = `
+                            <strong>Plan:</strong> ${data.session.metadata?.plan || 'Basique'}<br>
+                            <strong>Montant:</strong> ${data.session.amount_total} ${data.session.currency?.toUpperCase()}<br>
+                            <strong>Email:</strong> ${data.session.customer_email || 'Non spécifié'}
+                        `;
+                        
+                        // Mettre à jour l'utilisateur localement
+                        const user = JSON.parse(localStorage.getItem('devispro_user') || '{}');
+                        user.subscription = data.session.metadata?.plan || 'basic';
+                        user.credits = user.subscription === 'basic' ? 10 : 
+                                      user.subscription === 'pro' ? 50 : 'illimités';
+                        localStorage.setItem('devispro_user', JSON.stringify(user));
+                    }
+                })
+                .catch(error => {
+                    console.error('Erreur:', error);
+                });
+        }
+        
+        function goToDashboard() {
+            window.location.href = 'dashboard.html';
+        }
+        
+        // Redirection automatique après 5 secondes
+        setTimeout(() => {
+            goToDashboard();
+        }, 5000);
+    </script>
+</body>
+</html>
