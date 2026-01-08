@@ -195,8 +195,14 @@ app.get('/api/health', (req, res) => {
     });
 });
 // 1. CONNEXION (avec MySQL)
+// ====================
+// ROUTES API ESSENTIELLES
+// ====================
+
+// 1. LOGIN (connexion utilisateur)
 app.post('/api/login', async (req, res) => {
     try {
+        console.log('🔐 Tentative de connexion');
         const { email, password } = req.body;
         
         if (!email || !password) {
@@ -206,101 +212,228 @@ app.post('/api/login', async (req, res) => {
             });
         }
         
-        if (db) {
-            // Version MySQL
-            const [rows] = await db.execute(
-                'SELECT * FROM users WHERE email = ?',
-                [email]
-            );
-            
-            if (rows.length === 0) {
-                return res.status(401).json({ 
-                    success: false, 
-                    error: 'Email ou mot de passe incorrect' 
-                });
-            }
-            
-            const user = rows[0];
-            const validPassword = await bcrypt.compare(password, user.password_hash);
-            
-            if (!validPassword) {
-                return res.status(401).json({ 
-                    success: false, 
-                    error: 'Email ou mot de passe incorrect' 
-                });
-            }
-            
-            // Générer token
+        // Simulation pour TEST - À ADAPTER PLUS TARD
+        if (email.includes('@') && password.length >= 3) {
+            // Créer un token simple
             const tokenData = {
-                id: user.id,
-                email: user.email,
-                exp: Date.now() + 30 * 24 * 60 * 60 * 1000
+                id: Date.now(),
+                email: email,
+                exp: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 jours
             };
             const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
             
-            res.json({
+            return res.json({
                 success: true,
-                token,
+                token: token,
                 user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.first_name,
-                    lastName: user.last_name,
-                    company_name: user.company_name,
-                    phone: user.phone,
-                    address: user.address,
-                    siret: user.siret,
-                    credits: user.credits,
-                    subscription: user.subscription
-                }
-            });
-            
-        } else {
-            // Fallback: version fichier (votre code existant)
-            const fs = require('fs').promises;
-            const users = JSON.parse(await fs.readFile('./data/users.json', 'utf8'));
-            const user = users.find(u => u.email === email && u.password === password);
-            
-            if (!user) {
-                return res.status(401).json({ 
-                    success: false, 
-                    error: 'Email ou mot de passe incorrect' 
-                });
-            }
-            
-            // Générer token
-            const tokenData = {
-                id: user.id,
-                email: user.email,
-                exp: Date.now() + 30 * 24 * 60 * 60 * 1000
-            };
-            const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
-            
-            res.json({
-                success: true,
-                token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    firstName: user.firstName,
-                    lastName: user.lastName,
-                    company_name: user.company_name,
-                    phone: user.phone,
-                    address: user.address,
-                    siret: user.siret,
-                    credits: user.credits,
-                    subscription: user.subscription
-                }
+                    id: 1,
+                    email: email,
+                    firstName: 'Utilisateur',
+                    lastName: 'Test',
+                    credits: 3,
+                    subscription: 'free'
+                },
+                message: 'Mode test - Connecté avec succès'
             });
         }
         
+        res.status(401).json({ 
+            success: false, 
+            error: 'Email ou mot de passe incorrect' 
+        });
+        
     } catch (error) {
-        console.error('❌ Erreur connexion:', error);
+        console.error('❌ Erreur login:', error);
         res.status(500).json({ 
             success: false, 
             error: 'Erreur serveur' 
         });
     }
+});
+
+// 2. REGISTER (inscription)
+app.post('/api/register', async (req, res) => {
+    try {
+        console.log('📝 Tentative d\'inscription');
+        const { email, password, firstName, lastName } = req.body;
+        
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Tous les champs obligatoires sont requis' 
+            });
+        }
+        
+        if (!email.includes('@')) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email invalide' 
+            });
+        }
+        
+        // Simulation - Toujours réussi en mode test
+        const tokenData = {
+            id: Date.now(),
+            email: email,
+            exp: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
+        
+        res.json({
+            success: true,
+            token: token,
+            user: {
+                id: Date.now(),
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                credits: 3,
+                subscription: 'free'
+            },
+            message: 'Compte créé avec succès (mode test)'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur register:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de la création du compte' 
+        });
+    }
+});
+
+// 3. CREATE CHECKOUT SESSION (Stripe - version test)
+app.post('/api/create-checkout-session', async (req, res) => {
+    try {
+        console.log('💳 Création session de paiement');
+        const { priceId } = req.body;
+        
+        // Vérifier l'authentification (simplifié)
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Non autorisé - Token manquant' 
+            });
+        }
+        
+        // Simulation de session Stripe
+        res.json({
+            success: true,
+            url: `https://checkout.stripe.com/test?session=test_${Date.now()}`,
+            sessionId: `test_session_${Date.now()}`,
+            message: 'Mode test - Redirigé vers Stripe',
+            priceId: priceId || 'non spécifié'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur checkout:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
+    }
+});
+
+// 4. GET USER INFO
+app.get('/api/user', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Non autorisé' 
+            });
+        }
+        
+        // Décoder le token (simplifié)
+        let userData;
+        try {
+            userData = JSON.parse(Buffer.from(token, 'base64').toString());
+        } catch {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Token invalide' 
+            });
+        }
+        
+        // Retourner les infos utilisateur
+        res.json({
+            success: true,
+            user: {
+                id: userData.id || 1,
+                email: userData.email || 'test@test.com',
+                firstName: 'Utilisateur',
+                lastName: 'Test',
+                credits: 3,
+                subscription: 'free'
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur user info:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur' 
+        });
+    }
+});
+
+// 5. SAVE QUOTE (sauvegarder un devis)
+app.post('/api/quotes', async (req, res) => {
+    try {
+        const token = req.headers.authorization?.split(' ')[1];
+        
+        if (!token) {
+            return res.status(401).json({ 
+                success: false, 
+                error: 'Non autorisé' 
+            });
+        }
+        
+        const { client_name, total_ttc } = req.body;
+        
+        if (!client_name) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Nom du client requis' 
+            });
+        }
+        
+        // Simulation de sauvegarde
+        const quoteNumber = `DEV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        res.json({
+            success: true,
+            quote: {
+                id: Date.now(),
+                quote_number: quoteNumber,
+                client_name: client_name,
+                total_ttc: total_ttc || 0,
+                created_at: new Date().toISOString()
+            },
+            credits_remaining: 2, // Simulation
+            message: 'Devis sauvegardé (mode test)'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur sauvegarde devis:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de la sauvegarde' 
+        });
+    }
+});
+
+// 6. STRIPE WEBHOOK (simulation)
+app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
+    console.log('📨 Webhook Stripe reçu (simulation)');
+    res.json({ 
+        received: true,
+        message: 'Webhook traité en mode test'
+    });
 });
 
 // 2. INSCRIPTION (avec MySQL)
@@ -1038,5 +1171,6 @@ async function startServer() {
 
 
 startServer().catch(console.error);
+
 
 
