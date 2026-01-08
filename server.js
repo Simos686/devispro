@@ -469,73 +469,7 @@ app.post('/api/quotes', authenticate, async (req, res) => {
 // STRIPE - PAIEMENTS
 // ====================
 
-// 1. Créer une session de paiement
-app.post('/api/create-checkout-session', authenticate, async (req, res) => {
-    try {
-        const { priceId, successUrl, cancelUrl } = req.body;
-        
-        // Récupérer l'ID Stripe du client
-        const [userRows] = await db.execute(
-            'SELECT stripe_customer_id FROM users WHERE id = ?',
-            [req.user.id]
-        );
-        
-        let customer = userRows[0]?.stripe_customer_id;
-        
-        // Si pas de client Stripe, en créer un
-        if (!customer) {
-            const [userInfo] = await db.execute(
-                'SELECT email, first_name, last_name FROM users WHERE id = ?',
-                [req.user.id]
-            );
-            
-            const stripeCustomer = await stripe.customers.create({
-                email: userInfo[0].email,
-                name: `${userInfo[0].first_name} ${userInfo[0].last_name}`,
-                metadata: { user_id: req.user.id }
-            });
-            
-            customer = stripeCustomer.id;
-            
-            // Sauvegarder l'ID Stripe
-            await db.execute(
-                'UPDATE users SET stripe_customer_id = ? WHERE id = ?',
-                [customer, req.user.id]
-            );
-        }
-        
-        // Créer la session Stripe
-        const session = await stripe.checkout.sessions.create({
-            customer: customer,
-            payment_method_types: ['card'],
-            line_items: [
-                {
-                    price: priceId,
-                    quantity: 1,
-                },
-            ],
-            mode: 'subscription',
-            success_url: successUrl || `${process.env.FRONTEND_URL}/dashboard.html?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: cancelUrl || `${process.env.FRONTEND_URL}/pricing.html`,
-            metadata: {
-                user_id: req.user.id.toString()
-            }
-        });
-        
-        res.json({ 
-            success: true, 
-            sessionId: session.id,
-            url: session.url 
-        });
-        
-    } catch (error) {
-        console.error('❌ Erreur création session Stripe:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
-    }
-});
+
 
 // 2. Webhook Stripe (pour les événements)
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), async (req, res) => {
@@ -1053,5 +987,6 @@ async function startServer() {
         console.log('='.repeat(60));
     });
 }
+
 
 startServer().catch(console.error);
