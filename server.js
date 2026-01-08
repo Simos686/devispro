@@ -1,4 +1,3 @@
-// server.js - VERSION FINALE POUR RENDER
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
@@ -8,11 +7,14 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ====================
-// MIDDLEWARE (OBLIGATOIRE en premier)
+// MIDDLEWARE (OBLIGATOIRE dans cet ordre)
 // ====================
 app.use(cors());
-app.use(express.json()); // ⭐ Pour parser les requêtes POST
-app.use(express.static(__dirname)); // Pour servir les fichiers statiques
+app.use(express.json()); // ⭐ ESSENTIEL pour parser les requêtes POST
+app.use(express.static('.')); // Pour servir les fichiers statiques
+
+// Variables globales (gardées pour compatibilité)
+let db = null;
 
 // ====================
 // ROUTES API
@@ -20,17 +22,18 @@ app.use(express.static(__dirname)); // Pour servir les fichiers statiques
 
 // 1. TEST ROUTE (GET)
 app.get('/api/test', (req, res) => {
-    console.log('✅ GET /api/test appelé');
+    console.log('✅ GET /api/test');
     res.json({
         success: true,
         message: '🚀 DevisPro API fonctionnelle sur Render',
         timestamp: new Date().toISOString(),
         port: PORT,
         environment: process.env.NODE_ENV || 'development',
-        availableRoutes: [
+        routes: [
             'GET    /api/test',
             'GET    /api/health',
             'POST   /api/login',
+            'GET    /api/login (debug)',
             'POST   /api/register',
             'GET    /api/user',
             'POST   /api/create-checkout-session',
@@ -40,7 +43,7 @@ app.get('/api/test', (req, res) => {
     });
 });
 
-// 2. HEALTH CHECK (pour Render)
+// 2. HEALTH CHECK
 app.get('/api/health', (req, res) => {
     res.json({
         status: 'healthy',
@@ -51,25 +54,25 @@ app.get('/api/health', (req, res) => {
 });
 
 // 3. LOGIN (POST - version production)
-app.post('/api/login', (req, res) => {
+app.post('/api/login', async (req, res) => {
     try {
-        console.log('🔐 POST /api/login appelé');
-        console.log('📦 Body reçu:', req.body);
-        
+        console.log('🔐 POST /api/login');
         const { email, password } = req.body;
         
-        // Validation
+        console.log('Données reçues:', { email, password: password ? '***' : 'manquant' });
+        
         if (!email || !password) {
-            return res.status(400).json({
-                success: false,
-                error: 'Email et mot de passe requis'
+            console.log('❌ Email ou mot de passe manquant');
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Email et mot de passe requis' 
             });
         }
         
         if (!email.includes('@')) {
-            return res.status(400).json({
-                success: false,
-                error: 'Format email invalide'
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Format email invalide' 
             });
         }
         
@@ -77,8 +80,8 @@ app.post('/api/login', (req, res) => {
         const tokenData = {
             id: Date.now(),
             email: email,
-            firstName: 'Utilisateur',
-            lastName: 'Test',
+            firstName: 'Test',
+            lastName: 'User',
             exp: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 jours
         };
         
@@ -91,8 +94,8 @@ app.post('/api/login', (req, res) => {
             user: {
                 id: tokenData.id,
                 email: email,
-                firstName: 'Utilisateur',
-                lastName: 'Test',
+                firstName: 'Test',
+                lastName: 'User',
                 credits: 3,
                 subscription: 'free',
                 company_name: '',
@@ -105,14 +108,14 @@ app.post('/api/login', (req, res) => {
         
     } catch (error) {
         console.error('❌ Erreur login:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erreur serveur: ' + error.message
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur: ' + error.message 
         });
     }
 });
 
-// 4. LOGIN (GET - pour debug seulement)
+// 4. LOGIN (GET - pour debug seulement) - ⭐ AJOUTÉ ⭐
 app.get('/api/login', (req, res) => {
     console.log('📡 GET /api/login (route de debug)');
     res.json({
@@ -134,25 +137,24 @@ app.get('/api/login', (req, res) => {
 });
 
 // 5. REGISTER (POST)
-app.post('/api/register', (req, res) => {
+app.post('/api/register', async (req, res) => {
     try {
-        console.log('📝 POST /api/register appelé');
-        console.log('📦 Body reçu:', req.body);
-        
+        console.log('📝 POST /api/register');
         const { email, password, firstName, lastName } = req.body;
         
-        // Validation
+        console.log('Données inscription:', { email, firstName, lastName });
+        
         if (!email || !password || !firstName || !lastName) {
-            return res.status(400).json({
-                success: false,
-                error: 'Tous les champs sont requis'
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Tous les champs sont requis' 
             });
         }
         
         if (!email.includes('@')) {
-            return res.status(400).json({
-                success: false,
-                error: 'Format email invalide'
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Format email invalide' 
             });
         }
         
@@ -167,7 +169,6 @@ app.post('/api/register', (req, res) => {
         
         const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
         
-        // Réponse réussie
         res.json({
             success: true,
             token: token,
@@ -188,32 +189,32 @@ app.post('/api/register', (req, res) => {
         
     } catch (error) {
         console.error('❌ Erreur register:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erreur lors de la création du compte'
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de la création du compte' 
         });
     }
 });
 
-// 6. GET USER INFO (nécessite token)
-app.get('/api/user', (req, res) => {
+// 6. GET USER INFO
+app.get('/api/user', async (req, res) => {
     try {
-        console.log('👤 GET /api/user appelé');
+        console.log('👤 GET /api/user');
         
         // Vérifier le token
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Token manquant. Utilisez: Authorization: Bearer <token>'
+                error: 'Token manquant. Utilisez: Authorization: Bearer <token>' 
             });
         }
         
         const token = authHeader.split(' ')[1];
         if (!token) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Token mal formaté'
+                error: 'Token mal formaté' 
             });
         }
         
@@ -225,17 +226,17 @@ app.get('/api/user', (req, res) => {
             console.log('✅ Token décodé:', userData);
         } catch (error) {
             console.error('❌ Erreur décodage token:', error);
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Token invalide'
+                error: 'Token invalide' 
             });
         }
         
         // Vérifier expiration
         if (userData.exp && Date.now() > userData.exp) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Token expiré'
+                error: 'Token expiré' 
             });
         }
         
@@ -258,33 +259,34 @@ app.get('/api/user', (req, res) => {
         
     } catch (error) {
         console.error('❌ Erreur user info:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erreur serveur'
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur serveur' 
         });
     }
 });
 
 // 7. CREATE CHECKOUT SESSION (Stripe)
-app.post('/api/create-checkout-session', (req, res) => {
+app.post('/api/create-checkout-session', async (req, res) => {
     try {
-        console.log('💳 POST /api/create-checkout-session appelé');
+        console.log('💳 POST /api/create-checkout-session');
         
         // Vérifier l'authentification
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Non autorisé'
+                error: 'Non autorisé' 
             });
         }
         
         const { priceId } = req.body;
+        console.log('Price ID reçu:', priceId);
         
         if (!priceId) {
-            return res.status(400).json({
-                success: false,
-                error: 'Price ID manquant'
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Price ID manquant' 
             });
         }
         
@@ -299,33 +301,34 @@ app.post('/api/create-checkout-session', (req, res) => {
         
     } catch (error) {
         console.error('❌ Erreur checkout:', error);
-        res.status(500).json({
-            success: false,
-            error: error.message
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
         });
     }
 });
 
 // 8. SAVE QUOTE
-app.post('/api/quotes', (req, res) => {
+app.post('/api/quotes', async (req, res) => {
     try {
-        console.log('📄 POST /api/quotes appelé');
+        console.log('📄 POST /api/quotes');
         
         // Vérifier l'authentification
         const authHeader = req.headers['authorization'];
         if (!authHeader) {
-            return res.status(401).json({
+            return res.status(401).json({ 
                 success: false,
-                error: 'Non autorisé'
+                error: 'Non autorisé' 
             });
         }
         
         const { client_name, total_ttc } = req.body;
+        console.log('Devis à sauvegarder:', { client_name, total_ttc });
         
         if (!client_name) {
-            return res.status(400).json({
-                success: false,
-                error: 'Nom du client requis'
+            return res.status(400).json({ 
+                success: false, 
+                error: 'Nom du client requis' 
             });
         }
         
@@ -347,17 +350,17 @@ app.post('/api/quotes', (req, res) => {
         
     } catch (error) {
         console.error('❌ Erreur sauvegarde devis:', error);
-        res.status(500).json({
-            success: false,
-            error: 'Erreur lors de la sauvegarde'
+        res.status(500).json({ 
+            success: false, 
+            error: 'Erreur lors de la sauvegarde' 
         });
     }
 });
 
 // 9. STRIPE WEBHOOK
 app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
-    console.log('📨 POST /api/stripe-webhook appelé');
-    res.json({
+    console.log('📨 POST /api/stripe-webhook');
+    res.json({ 
         received: true,
         message: 'Webhook traité en mode test',
         timestamp: new Date().toISOString()
@@ -399,7 +402,7 @@ app.get('/dashboard.html', (req, res) => {
 });
 
 // ====================
-// ROUTE 404 POUR API
+// ROUTE 404 POUR API (AMÉLIORÉE)
 // ====================
 
 app.use('/api/*', (req, res) => {
@@ -411,6 +414,7 @@ app.use('/api/*', (req, res) => {
             'GET    /api/test',
             'GET    /api/health',
             'POST   /api/login',
+            'GET    /api/login (debug)',
             'POST   /api/register',
             'GET    /api/user',
             'POST   /api/create-checkout-session',
@@ -446,7 +450,6 @@ app.listen(PORT, () => {
 ╚══════════════════════════════════════════════════╝
     `);
     
-    // Routes disponibles
     console.log('\n📋 Routes disponibles:');
     console.log('  GET    /api/test');
     console.log('  GET    /api/health');
