@@ -145,7 +145,33 @@ function authenticate(req, res, next) {
 // ====================
 // ROUTES API - MYSQL
 // ====================
+// ====================
+// ROUTES DE TEST
+// ====================
 
+// Route test OBLIGATOIRE pour Render
+app.get('/api/test', (req, res) => {
+    console.log('✅ Test API appelée depuis:', req.headers.host);
+    res.json({
+        success: true,
+        message: '🚀 DevisPro API fonctionnelle',
+        timestamp: new Date().toISOString(),
+        environment: process.env.NODE_ENV || 'development',
+        port: PORT,
+        mysql: db ? 'connecté' : 'non connecté',
+        stripe: process.env.STRIPE_SECRET_KEY ? 'configuré' : 'non configuré'
+    });
+});
+
+// Route de santé pour Render
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        service: 'devispro',
+        uptime: process.uptime(),
+        database: db ? 'connected' : 'disconnected'
+    });
+});
 // 1. CONNEXION (avec MySQL)
 app.post('/api/login', async (req, res) => {
     try {
@@ -990,3 +1016,4 @@ async function startServer() {
 
 
 startServer().catch(console.error);
+
