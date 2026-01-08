@@ -1,3 +1,5 @@
+// server.js - VERSION FINALE POUR RENDER
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -6,54 +8,123 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // ====================
-// MIDDLEWARE (DOIT ÊTRE EN PREMIER)
+// MIDDLEWARE (OBLIGATOIRE en premier)
 // ====================
 app.use(cors());
-app.use(express.json()); // ⭐ TRÈS IMPORTANT pour POST
-app.use(express.static(__dirname));
+app.use(express.json()); // ⭐ Pour parser les requêtes POST
+app.use(express.static(__dirname)); // Pour servir les fichiers statiques
 
 // ====================
-// ROUTES API (DOIVENT ÊTRE APRÈS MIDDLEWARE)
+// ROUTES API
 // ====================
 
-// 1. TEST
+// 1. TEST ROUTE (GET)
 app.get('/api/test', (req, res) => {
-    console.log('📡 GET /api/test');
+    console.log('✅ GET /api/test appelé');
     res.json({
         success: true,
-        message: 'API fonctionne',
+        message: '🚀 DevisPro API fonctionnelle sur Render',
+        timestamp: new Date().toISOString(),
+        port: PORT,
+        environment: process.env.NODE_ENV || 'development',
+        availableRoutes: [
+            'GET    /api/test',
+            'GET    /api/health',
+            'POST   /api/login',
+            'POST   /api/register',
+            'GET    /api/user',
+            'POST   /api/create-checkout-session',
+            'POST   /api/quotes',
+            'POST   /api/stripe-webhook'
+        ]
+    });
+});
+
+// 2. HEALTH CHECK (pour Render)
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'healthy',
+        service: 'devispro',
+        uptime: process.uptime(),
         timestamp: new Date().toISOString()
     });
 });
 
-// 2. LOGIN (version ultra simple)
+// 3. LOGIN (POST - version production)
 app.post('/api/login', (req, res) => {
-    console.log('📨 POST /api/login - Body:', req.body);
-    
-    // Toujours répondre quelque chose
-    res.json({
-        success: true,
-        token: 'test_token',
-        user: { email: req.body.email || 'test@test.com' }
-    });
+    try {
+        console.log('🔐 POST /api/login appelé');
+        console.log('📦 Body reçu:', req.body);
+        
+        const { email, password } = req.body;
+        
+        // Validation
+        if (!email || !password) {
+            return res.status(400).json({
+                success: false,
+                error: 'Email et mot de passe requis'
+            });
+        }
+        
+        if (!email.includes('@')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Format email invalide'
+            });
+        }
+        
+        // Création du token (simple Base64)
+        const tokenData = {
+            id: Date.now(),
+            email: email,
+            firstName: 'Utilisateur',
+            lastName: 'Test',
+            exp: Date.now() + 30 * 24 * 60 * 60 * 1000 // 30 jours
+        };
+        
+        const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
+        
+        // Réponse réussie
+        res.json({
+            success: true,
+            token: token,
+            user: {
+                id: tokenData.id,
+                email: email,
+                firstName: 'Utilisateur',
+                lastName: 'Test',
+                credits: 3,
+                subscription: 'free',
+                company_name: '',
+                phone: '',
+                address: '',
+                siret: ''
+            },
+            message: 'Connexion réussie'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur login:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erreur serveur: ' + error.message
+        });
+    }
 });
 
-// 3. REGISTER
-app.post('/api/register', (req, res) => {
-    console.log('📨 POST /api/register');
-    res.json({ success: true, message: 'Register OK' });
-});
-// Après votre route POST /api/login, ajoutez :
-
-// Route GET pour le login (pour debug)
+// 4. LOGIN (GET - pour debug seulement)
 app.get('/api/login', (req, res) => {
-    console.log('⚠️ GET /api/login appelé (devrait être POST)');
+    console.log('📡 GET /api/login (route de debug)');
     res.json({
         success: false,
-        error: 'Utilisez POST /api/login avec email et password',
+        error: 'Cette route nécessite une requête POST',
+        instructions: 'Utilisez POST avec email et password',
         example: {
             method: 'POST',
             url: '/api/login',
+            headers: {
+                'Content-Type': 'application/json'
+            },
             body: {
                 email: 'test@test.com',
                 password: 'test123'
@@ -61,12 +132,244 @@ app.get('/api/login', (req, res) => {
         }
     });
 });
+
+// 5. REGISTER (POST)
+app.post('/api/register', (req, res) => {
+    try {
+        console.log('📝 POST /api/register appelé');
+        console.log('📦 Body reçu:', req.body);
+        
+        const { email, password, firstName, lastName } = req.body;
+        
+        // Validation
+        if (!email || !password || !firstName || !lastName) {
+            return res.status(400).json({
+                success: false,
+                error: 'Tous les champs sont requis'
+            });
+        }
+        
+        if (!email.includes('@')) {
+            return res.status(400).json({
+                success: false,
+                error: 'Format email invalide'
+            });
+        }
+        
+        // Création du token
+        const tokenData = {
+            id: Date.now(),
+            email: email,
+            firstName: firstName,
+            lastName: lastName,
+            exp: Date.now() + 30 * 24 * 60 * 60 * 1000
+        };
+        
+        const token = Buffer.from(JSON.stringify(tokenData)).toString('base64');
+        
+        // Réponse réussie
+        res.json({
+            success: true,
+            token: token,
+            user: {
+                id: tokenData.id,
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                credits: 3,
+                subscription: 'free',
+                company_name: '',
+                phone: '',
+                address: '',
+                siret: ''
+            },
+            message: 'Compte créé avec succès'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur register:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erreur lors de la création du compte'
+        });
+    }
+});
+
+// 6. GET USER INFO (nécessite token)
+app.get('/api/user', (req, res) => {
+    try {
+        console.log('👤 GET /api/user appelé');
+        
+        // Vérifier le token
+        const authHeader = req.headers['authorization'];
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                error: 'Token manquant. Utilisez: Authorization: Bearer <token>'
+            });
+        }
+        
+        const token = authHeader.split(' ')[1];
+        if (!token) {
+            return res.status(401).json({
+                success: false,
+                error: 'Token mal formaté'
+            });
+        }
+        
+        // Décoder le token
+        let userData;
+        try {
+            const decoded = Buffer.from(token, 'base64').toString();
+            userData = JSON.parse(decoded);
+            console.log('✅ Token décodé:', userData);
+        } catch (error) {
+            console.error('❌ Erreur décodage token:', error);
+            return res.status(401).json({
+                success: false,
+                error: 'Token invalide'
+            });
+        }
+        
+        // Vérifier expiration
+        if (userData.exp && Date.now() > userData.exp) {
+            return res.status(401).json({
+                success: false,
+                error: 'Token expiré'
+            });
+        }
+        
+        // Retourner les infos utilisateur
+        res.json({
+            success: true,
+            user: {
+                id: userData.id,
+                email: userData.email,
+                firstName: userData.firstName || 'Utilisateur',
+                lastName: userData.lastName || 'Test',
+                credits: 3,
+                subscription: 'free',
+                company_name: '',
+                phone: '',
+                address: '',
+                siret: ''
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur user info:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erreur serveur'
+        });
+    }
+});
+
+// 7. CREATE CHECKOUT SESSION (Stripe)
+app.post('/api/create-checkout-session', (req, res) => {
+    try {
+        console.log('💳 POST /api/create-checkout-session appelé');
+        
+        // Vérifier l'authentification
+        const authHeader = req.headers['authorization'];
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                error: 'Non autorisé'
+            });
+        }
+        
+        const { priceId } = req.body;
+        
+        if (!priceId) {
+            return res.status(400).json({
+                success: false,
+                error: 'Price ID manquant'
+            });
+        }
+        
+        // Simulation de session Stripe
+        res.json({
+            success: true,
+            url: `https://checkout.stripe.com/test?session=test_${Date.now()}`,
+            sessionId: `test_session_${Date.now()}`,
+            message: 'Mode test - Configurez Stripe pour la production',
+            priceId: priceId
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur checkout:', error);
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// 8. SAVE QUOTE
+app.post('/api/quotes', (req, res) => {
+    try {
+        console.log('📄 POST /api/quotes appelé');
+        
+        // Vérifier l'authentification
+        const authHeader = req.headers['authorization'];
+        if (!authHeader) {
+            return res.status(401).json({
+                success: false,
+                error: 'Non autorisé'
+            });
+        }
+        
+        const { client_name, total_ttc } = req.body;
+        
+        if (!client_name) {
+            return res.status(400).json({
+                success: false,
+                error: 'Nom du client requis'
+            });
+        }
+        
+        // Simulation de sauvegarde
+        const quoteNumber = `DEV-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        res.json({
+            success: true,
+            quote: {
+                id: Date.now(),
+                quote_number: quoteNumber,
+                client_name: client_name,
+                total_ttc: total_ttc || 0,
+                created_at: new Date().toISOString()
+            },
+            credits_remaining: 2,
+            message: 'Devis sauvegardé avec succès (mode test)'
+        });
+        
+    } catch (error) {
+        console.error('❌ Erreur sauvegarde devis:', error);
+        res.status(500).json({
+            success: false,
+            error: 'Erreur lors de la sauvegarde'
+        });
+    }
+});
+
+// 9. STRIPE WEBHOOK
+app.post('/api/stripe-webhook', express.raw({type: 'application/json'}), (req, res) => {
+    console.log('📨 POST /api/stripe-webhook appelé');
+    res.json({
+        received: true,
+        message: 'Webhook traité en mode test',
+        timestamp: new Date().toISOString()
+    });
+});
+
 // ====================
-// ROUTES HTML (APRÈS API)
+// ROUTES FICHIERS HTML
 // ====================
 
 app.get('/', (req, res) => {
-    console.log('📄 GET /');
+    console.log('📄 GET / (index.html)');
     res.sendFile(path.join(__dirname, 'index.html'));
 });
 
@@ -75,47 +378,85 @@ app.get('/login.html', (req, res) => {
     res.sendFile(path.join(__dirname, 'login.html'));
 });
 
+app.get('/register.html', (req, res) => {
+    console.log('📄 GET /register.html');
+    res.sendFile(path.join(__dirname, 'register.html'));
+});
+
 app.get('/create.html', (req, res) => {
+    console.log('📄 GET /create.html');
     res.sendFile(path.join(__dirname, 'create.html'));
 });
 
 app.get('/pricing.html', (req, res) => {
+    console.log('📄 GET /pricing.html');
     res.sendFile(path.join(__dirname, 'pricing.html'));
 });
 
 app.get('/dashboard.html', (req, res) => {
+    console.log('📄 GET /dashboard.html');
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-app.get('/register.html', (req, res) => {
-    res.sendFile(path.join(__dirname, 'register.html'));
-});
-
 // ====================
-// ROUTE 404 (TOUJOURS EN DERNIER)
+// ROUTE 404 POUR API
 // ====================
 
-app.use((req, res) => {
-    console.log(`❌ Route non trouvée: ${req.method} ${req.url}`);
+app.use('/api/*', (req, res) => {
+    console.log(`❌ Route API non trouvée: ${req.method} ${req.originalUrl}`);
     res.status(404).json({
-        error: `Route ${req.method} ${req.url} non trouvée`,
-        availableRoutes: ['GET /api/test', 'POST /api/login', 'POST /api/register']
+        success: false,
+        error: `Route ${req.method} ${req.originalUrl} non trouvée`,
+        availableRoutes: [
+            'GET    /api/test',
+            'GET    /api/health',
+            'POST   /api/login',
+            'POST   /api/register',
+            'GET    /api/user',
+            'POST   /api/create-checkout-session',
+            'POST   /api/quotes',
+            'POST   /api/stripe-webhook'
+        ]
     });
 });
 
 // ====================
-// DÉMARRAGE
+// ROUTE CATCH-ALL POUR SPA
+// ====================
+
+app.get('*', (req, res) => {
+    console.log(`🌐 Route catch-all: ${req.url}`);
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// ====================
+// DÉMARRAGE SERVEUR
 // ====================
 
 app.listen(PORT, () => {
     console.log(`
-╔══════════════════════════════════════╗
-║        🚀 SERVEUR DÉMARRÉ            ║
-╠══════════════════════════════════════╣
-║ Port: ${PORT}                           
-║ Test: curl http://localhost:${PORT}/api/test
-║ Login: curl -X POST http://localhost:${PORT}/api/login
-╚══════════════════════════════════════╝
+╔══════════════════════════════════════════════════╗
+║               🚀 DEVISPRO - RENDER               ║
+╠══════════════════════════════════════════════════╣
+║ 📡 Port: ${PORT}                                      
+║ 🌐 Environnement: ${process.env.NODE_ENV || 'development'}          
+║ 🔗 URL API: https://votre-app.onrender.com/api/test  
+║ 📊 Routes configurées: 9                          
+║ ⚡ Stripe: ${process.env.STRIPE_SECRET_KEY ? '✅' : '❌'}                
+╚══════════════════════════════════════════════════╝
     `);
+    
+    // Routes disponibles
+    console.log('\n📋 Routes disponibles:');
+    console.log('  GET    /api/test');
+    console.log('  GET    /api/health');
+    console.log('  POST   /api/login');
+    console.log('  GET    /api/login (debug)');
+    console.log('  POST   /api/register');
+    console.log('  GET    /api/user');
+    console.log('  POST   /api/create-checkout-session');
+    console.log('  POST   /api/quotes');
+    console.log('  POST   /api/stripe-webhook');
+    console.log('\n📄 Pages HTML:');
+    console.log('  /, /login.html, /register.html, /create.html, /pricing.html, /dashboard.html');
 });
-
